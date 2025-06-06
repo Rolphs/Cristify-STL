@@ -147,6 +147,14 @@ pip install -r requirements-dev.txt
 python app/gui/main_gui.py
 ```
 
+## 📟 Command Line Usage
+
+You can also transform meshes directly from the terminal:
+
+```bash
+python -m app.cli --input model.stl --output draped.stl --amount 1.5
+```
+
 ---
 
 ## 🌈 Project Philosophy
