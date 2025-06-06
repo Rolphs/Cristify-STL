@@ -106,7 +106,7 @@ Cristify-STL/
       main_gui.py         # Main GUI application
       viewer.py           # 3D visualizer
     assets/               # UI themes, icons
-    data/                 # User STL files                  # User STL files
+    data/                 # User STL files
 ```
 
 ---
