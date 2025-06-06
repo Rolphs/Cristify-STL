@@ -123,6 +123,12 @@ Cristify-STL/
 
 * [ ] Embedded gallery view with previews
 
+## 🧠 Intelligent Mesh Intervention Strategy
+
+Cristify STL aspires to become an intelligent assistant that intervenes in 3D geometry only when it can meaningfully contribute.
+It analyzes mesh structure, projects potential transformations, estimates their impact, and requests human input only when its expected contribution is minimal.
+This hybrid architecture blends geometric structure, probabilistic learning, and aesthetic judgment.
+
 ---
 
 ## 🚀 Getting Started for Developers
