@@ -123,16 +123,6 @@ Cristify-STL/
 
 * [ ] Embedded gallery view with previews
 
-* Blender plugin integration
-
-* Progressive wrapping animations
-
-* WebXR and AR export
-
-* Tablet and stylus support
-
-* Embedded gallery view with previews
-
 ---
 
 ## 🚀 Getting Started for Developers
