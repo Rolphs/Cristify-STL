@@ -144,7 +144,7 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 
 # Launch GUI
-python app/gui/main_gui.py
+python -m app.gui.main_gui
 ```
 
 ## 📟 Command Line Usage
