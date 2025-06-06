@@ -1,4 +1,3 @@
-import pytest
 import trimesh
 
 from app.core import analyze_mesh

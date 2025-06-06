@@ -1,7 +1,6 @@
 import subprocess
 import sys
 
-import pytest
 import trimesh
 
 from app.core.io import load_mesh
@@ -30,5 +29,5 @@ def test_cli_cristify(tmp_path):
     assert output_path.exists()
     result = load_mesh(str(output_path))
     assert isinstance(result, trimesh.Trimesh)
-    assert result.vertices[:, 2].min() < trimesh.load(str(input_path)).vertices[:, 2].min()
-
+    original = trimesh.load(str(input_path))
+    assert result.vertices[:, 2].min() < original.vertices[:, 2].min()

@@ -12,7 +12,11 @@ from app.core.cristify import cristify_mesh
 def parse_args(args: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Cristify an STL mesh")
-    parser.add_argument("--input", required=True, help="Path to input STL file")
+    parser.add_argument(
+        "--input",
+        required=True,
+        help="Path to input STL file",
+    )
     parser.add_argument(
         "--output", required=True, help="Destination path for transformed mesh"
     )

@@ -29,4 +29,3 @@ def test_save_invalid_directory(tmp_path):
     invalid_path = tmp_path / "no_dir" / "mesh.stl"
     with pytest.raises(IOError):
         save_mesh(mesh, os.fspath(invalid_path))
-

@@ -6,7 +6,10 @@ import numpy as np
 import trimesh
 
 
-def cristify_mesh(mesh: trimesh.Trimesh, amount: float = 1.0) -> trimesh.Trimesh:
+def cristify_mesh(
+    mesh: trimesh.Trimesh,
+    amount: float = 1.0,
+) -> trimesh.Trimesh:
     """Project vertices downward to create a draped effect.
 
     Each vertex is translated along the negative ``Z`` axis by ``amount`` times
@@ -17,8 +20,9 @@ def cristify_mesh(mesh: trimesh.Trimesh, amount: float = 1.0) -> trimesh.Trimesh
     mesh:
         Input mesh to transform.
     amount:
-        Scale factor for the downward displacement. ``1.0`` moves each vertex by
-        its full distance from the top, ``0`` leaves the mesh unchanged.
+        Scale factor for the downward displacement. ``1.0`` moves each
+        vertex by its full distance from the top, ``0`` leaves the mesh
+        unchanged.
 
     Returns
     -------
@@ -48,4 +52,3 @@ def cristify_mesh(mesh: trimesh.Trimesh, amount: float = 1.0) -> trimesh.Trimesh
     )
 
     return new_mesh
-
