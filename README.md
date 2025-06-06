@@ -143,7 +143,7 @@ python -m venv venv
 source venv/bin/activate  # or .\venv\Scripts\activate on Windows
 
 # Install dependencies
-pip install trimesh open3d pymeshlab dearpygui numpy scipy
+pip install -r requirements.txt
 
 # Launch GUI
 python app/gui/main_gui.py

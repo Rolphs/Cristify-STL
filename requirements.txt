@@ -1,0 +1,7 @@
+trimesh
+open3d
+pymeshlab
+numpy
+scipy
+dearpygui
+pytest
