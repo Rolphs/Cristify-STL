@@ -1,7 +1,6 @@
-trimesh
-open3d
-pymeshlab
-numpy
-scipy
-dearpygui
-pytest
+trimesh==4.6.11
+open3d==0.19.0
+pymeshlab==2023.12.post3
+numpy==2.2.6
+scipy==1.12.0
+dearpygui==1.11.1

@@ -138,8 +138,10 @@ This hybrid architecture blends geometric structure, probabilistic learning, and
 python -m venv venv
 source venv/bin/activate  # or .\venv\Scripts\activate on Windows
 
-# Install dependencies
+# Install runtime dependencies
 pip install -r requirements.txt
+# Install development tools (tests, linters)
+pip install -r requirements-dev.txt
 
 # Launch GUI
 python app/gui/main_gui.py
