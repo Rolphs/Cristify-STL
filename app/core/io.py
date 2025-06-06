@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import trimesh
 
@@ -70,4 +69,3 @@ def save_mesh(mesh: trimesh.Trimesh, path: str) -> None:
         raise IOError(f"Directory does not exist for path: {path}") from None
     except Exception as exc:  # pragma: no cover - rely on trimesh exceptions
         raise IOError(f"Could not write mesh to {path}") from exc
-

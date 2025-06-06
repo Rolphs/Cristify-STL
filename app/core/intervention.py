@@ -34,7 +34,10 @@ def analyze_mesh(mesh: trimesh.Trimesh) -> Dict[str, float | int | bool]:
 
     result["has_holes"] = not mesh.is_watertight
 
-    unique_idx, counts = np.unique(mesh.edges_unique_inverse, return_counts=True)
+    unique_idx, counts = np.unique(
+        mesh.edges_unique_inverse,
+        return_counts=True,
+    )
     isolated_edges = mesh.edges_unique[counts == 1]
     result["isolated_edges"] = int(len(isolated_edges))
 
