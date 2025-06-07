@@ -26,6 +26,17 @@ def parse_args(args: Sequence[str] | None = None) -> argparse.Namespace:
         default=1.0,
         help="Cristify amount scale factor",
     )
+    parser.add_argument(
+        "--axis",
+        default="z",
+        help="Axis to project along (x, y, or z)",
+    )
+    parser.add_argument(
+        "--floor",
+        type=float,
+        default=None,
+        help="Optional minimum coordinate after projection",
+    )
     return parser.parse_args(args)
 
 
@@ -33,7 +44,12 @@ def main(args: Sequence[str] | None = None) -> int:
     opts = parse_args(args)
 
     mesh = load_mesh(opts.input)
-    result = cristify_mesh(mesh, amount=opts.amount)
+    result = cristify_mesh(
+        mesh,
+        amount=opts.amount,
+        axis=opts.axis,
+        floor=opts.floor,
+    )
     save_mesh(result, opts.output)
     return 0
 
