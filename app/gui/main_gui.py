@@ -76,7 +76,10 @@ def main() -> None:  # pragma: no cover - manual run
         dpg.add_button(label="Save STL", callback=_open_save_dialog)
 
     with dpg.file_dialog(
-        directory_selector=False, callback=_on_load_dialog, show=False, tag="load_dialog"
+        directory_selector=False,
+        callback=_on_load_dialog,
+        show=False,
+        tag="load_dialog",
     ):
         dpg.add_file_extension(".stl", color=(0, 255, 0, 255))
 
@@ -99,4 +102,3 @@ def main() -> None:  # pragma: no cover - manual run
 
 if __name__ == "__main__":  # pragma: no cover - manual launch
     main()
-
