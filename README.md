@@ -71,6 +71,7 @@ Choose models, apply processes, rename, overwrite, save versions, and maintain a
 * `open3d`: Booleans, watertight repairs, advanced viewing.
 * `pymeshlab`: Mesh repair and optimization.
 * `numpy` + `scipy`: Projections, remeshing, geometric math.
+* `networkx`: Graph utilities used for some geometry operations.
 
 ### Graphical Interface
 
@@ -139,7 +140,7 @@ python -m venv venv
 source venv/bin/activate  # or .\venv\Scripts\activate on Windows
 
 # Install runtime dependencies
-pip install -r requirements.txt
+pip install -r requirements.txt  # includes networkx
 # Install development tools (tests, linters)
 pip install -r requirements-dev.txt
 
