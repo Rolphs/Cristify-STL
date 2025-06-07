@@ -29,6 +29,7 @@ def parse_args(args: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--axis",
         default="z",
+        choices=["x", "y", "z"],
         help="Axis to project along (x, y, or z)",
     )
     parser.add_argument(
