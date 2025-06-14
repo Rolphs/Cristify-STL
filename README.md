@@ -1,169 +1,45 @@
-# Cristify STL
+# The Voronizer
 
-*A creative mesh transformation toolkit for digital artists.*
+The Voronizer is a python script written to generate support structures and infill structures for 3D models.  The structures are based on Voronoi foam, and allow the user a lot of control over the resulting model.
 
-![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
+This code (and the algorithms within) are described by the paper freely available online: http://utw10945.utweb.utexas.edu/sites/default/files/2019/153%20Using%20Parallel%20Computing%20Techniques%20to%20Algorithmic.pdf
 
-**Cristify STL** is a visual and geometric transformation tool for STL files, inspired by the work of artist Christo, who wrapped real-world monuments in fabric as acts of aesthetic and symbolic expression. This application is designed specifically for graphic artists who want to transform 3D models for expressive purposes, creating sculptural digital structures that simulate wrapping, curtains, blocks, or altered materialities.
+## Setting Up Your Machine
 
-## 📄 Purpose
+This script uses CUDA, a parallel processing library.  It requires that you have an Nvidia graphics card installed and that your computer is set up with the CUDA Toolkit.  Instructions are available here: https://developer.nvidia.com/how-to-cuda-python
 
-To empower digital artists to explore the sculptural potential of STL models through:
+The following packages are used:
+numba, numpy, math, os, time, matplotlib, PIL, struct, operator, skimage, mpl_toolkits
 
-* Vertical geometry projection.
-* Wrapped or "falling fabric" style transformations.
-* Topological cleaning and mesh fixing.
-* Watertight mesh generation.
-* Intuitive visual interface.
+I recommend using the Anaconda Python 3.X package, which comes with all the relevant packages pre-installed.
+https://www.anaconda.com/distribution/
 
----
+Some alternatives to having your own GPU installed are listed on the above website.
 
-## 🔧 Key Features
+## Running the Script
 
-### 1. Vertical Cristification
+First, place the STL of the file you want to produce the Voronoi infill and/or supports of into the 'Input' folder.
 
-Transform any STL into a wrapped sculpture that projects its vertices downward as if pulled by gravity.
+Next, open the userInput.py file in a text editor or scripting environment, such as Spyder (Which comes packaged with Anaconda) or Notepad.
 
-### 2. Blockification with Flat Base
+Edit the options to best fit your needs.  If you only want the supports, set MODEL = False, if you only want the model set SUPPORT = False.  Edit line 15 to be the file name of your desired input STL, or delete the # symbol next to the demo model that you want to test.  It is recommended that all settings be left at their initial values at first to ensure compatability.
 
-Convert any mesh into a clean solid block, with corrected normals and planar grounding.
+The script can be run through main.py.
 
-### 3. Watertight Mesh Repair
+After running the script, the model may need some post-processing to be compatable with your slicing software.  I recommend MeshLab, a free mesh-editing software available here: http://www.meshlab.net/.  To clean the model, I recommend using Filters > Cleaning and Repairing > Remove Non-Manifold Faces.  To smooth out the resulting model, I recommend the HC Laplacian Smooth filter, found under Filters > Smoothing Fairing and Deformation > HC Laplacian Smooth.  The HC Laplacian filter can be used iteratively to achieve the desired surface finish.  Finally, to export your model from MeshLab, go to File > Export Mesh As, and save it as a file type compatible with your slicing software.
 
-Fix holes and create closed, solid meshes ready for 3D printing or simulation.
+## Troubleshooting
 
-### 4. Visual Interface
+#### I got an error message
 
-Includes a graphical interface with 3D previews, file selection, transformation options, and STL management.
+>UnicodeDecodeError: 'utf-8' codec can't decode byte 0xaa in position 80: invalid start byte
 
-### 5. STL File Management
+This (or something similar) means that the file is not formatted in a way that can be easily read by the STL reader.  If you get an error like this, try importing the file into MeshLab and then export it as an STL.
 
-Choose models, apply processes, rename, overwrite, save versions, and maintain a clean creative workflow.
+>CudaAPIError: Call to cuMemcpyDtoH results in UNKNOWN_CUDA_ERROR
 
----
+This means that the resolution is off.  Often, it means that the input value makes the array too large for your graphics card to deal with.  To fix this, try decreasing the value assigned to RESOLUTION.  After changing the value, it's recommended that you restart the kernel before re-running the script, as this error can sometimes impact future iterations.
 
-## 🛋️ User Stories
+#### My file is taking a while to process
 
-### Primary user: Digital Graphic Artist
-
-1. **As an artist**, I want to cristify STL models to apply visual transformations inspired by Christo.
-2. **As an artist**, I want to convert an STL into a clean block with correct face orientation.
-3. **As an artist**, I want to make my STL models watertight.
-4. **As an artist**, I want a graphical interface so I don't need to rely on command-line tools.
-5. **As an artist**, I want to manage my STL files within the interface.
-6. **As an artist**, I want to preview transformations before committing changes.
-7. **As an artist**, I want to see a transformation history per file.
-8. **As an artist**, I want to export in other formats (OBJ, GLB, PLY).
-9. **As an artist**, I want to combine multiple STLs into one composition.
-10. **As an artist**, I want to batch-process STL files with the same transformation.
-
----
-
-## 🧪 Tech Stack
-
-### Core Language
-
-* Python 3.11+
-
-### Geometry and STL Handling
-
-* `trimesh`: Mesh operations, STL loading/writing.
-* `open3d`: Booleans, watertight repairs, advanced viewing.
-* `pymeshlab`: Mesh repair and optimization.
-* `numpy` + `scipy`: Projections, remeshing, geometric math.
-* `networkx`: Graph utilities used for some geometry operations.
-
-### Graphical Interface
-
-* **Dear PyGui**: Modern GPU-accelerated GUI with 3D viewport and reactive widgets.
-
-### Rendering & Visualization
-
-* `DearPyGui` 3D viewport
-* `trimesh.SceneViewer`
-* `open3d.visualization`
-
-### File Management
-
-* Python built-in `os`, `shutil`, `pathlib` for file browsing, renaming, saving, and versioning.
-
-### Testing & Distribution
-
-* `pytest` for tests
-* `PyInstaller` or `briefcase` for packaging as a native desktop app
-
----
-
-## 📂 Project Structure
-
-```
-Cristify-STL/
-  app/
-    core/
-      cristify.py         # Wrapping and projection logic
-      mesh_utils.py        # Watertight repairs and cleanup
-      io.py                # File loading, saving, renaming
-    gui/
-      main_gui.py         # Main GUI application
-      viewer.py           # 3D visualizer
-    assets/               # UI themes, icons
-    data/                 # User STL files
-```
-
----
-
-## 🌍 Future Vision
-
-* [ ] Blender plugin integration
-
-* [ ] Progressive wrapping animations
-
-* [ ] WebXR and AR export
-
-* [ ] Tablet and stylus support
-
-* [ ] Embedded gallery view with previews
-
-## 🧠 Intelligent Mesh Intervention Strategy
-
-Cristify STL aspires to become an intelligent assistant that intervenes in 3D geometry only when it can meaningfully contribute.
-It analyzes mesh structure, projects potential transformations, estimates their impact, and requests human input only when its expected contribution is minimal.
-This hybrid architecture blends geometric structure, probabilistic learning, and aesthetic judgment.
-
----
-
-## 🚀 Getting Started for Developers
-
-```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # or .\venv\Scripts\activate on Windows
-
-# Install runtime dependencies
-pip install -r requirements.txt  # includes networkx
-# Install development tools (tests, linters)
-pip install -r requirements-dev.txt
-
-# Launch GUI
-python app/gui/main_gui.py
-```
-
-## 📟 Command Line Usage
-
-You can also transform meshes directly from the terminal:
-
-```bash
-python -m app.cli --input model.stl --output draped.stl --amount 1.5
-```
-
----
-
-## 🌈 Project Philosophy
-
-Cristify STL is based on the idea that 3D models are not just technical assets but **aesthetic matter**. It embraces the notion that digital art needs its own sensitive materials, and that wrapping, deforming, and projecting models is a valid way to create visual, spatial, and narrative meaning.
-
----
-
-## 🔗 Contributing
-
-This project is a gift to the world—open, free, and expressive. Contributions are welcome from digital artists, creative developers, visual mathematicians, and geometry poets alike.
+There are several things that can be done to speed up the software.  The fastest way is to decrease the resolution.  Another way to speed things up is to lower the triangle count of the input model.  I recommend going into MeshMixer with your input model, going to Filters > Remeshing, Simplification and Reconstruction > Simplification: Quadratic Edge Collapse Decimation, checking the 'Preserve Boundary of Mesh' box, and reducing the model to 50% of the initial triangle count (type 0.5 into the 'Percentage Reduction' text box).  For many models, there are many more triangles than are needed, so they can be simplified significantly with minimal loss of quality.
