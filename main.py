@@ -32,7 +32,7 @@ def main():
             print("Input file not found.") 
             return
         res = u.RESOLUTION-u.BUFFER*2
-        origShape, objectBox = voxelize(filepath, res, u.BUFFER)
+        origShape, objectBox = voxelize(filepath, res, u.BUFFER, u.TPB)
         gridResX, gridResY, gridResZ = origShape.shape
         scale[0] = objectBox[0]/(gridResX-u.BUFFER*2)
         scale[1] = max(objectBox[1:])/(gridResY-u.BUFFER*2)
@@ -42,23 +42,27 @@ def main():
         if PRIMITIVE_TYPE == "Heart":
             x0 = np.linspace(-1.5,1.5,u.RESOLUTION)
             y0, z0 = x0, x0
-            origShape = f.heart(x0,y0,z0,0,0,0)
+            origShape = f.heart(x0, y0, z0, 0, 0, 0, u.TPB)
         elif PRIMITIVE_TYPE == "Egg":
             x0 = np.linspace(-5,5,u.RESOLUTION)
             y0, z0 = x0, x0
-            origShape = f.egg(x0,y0,z0,0,0,0)
+            origShape = f.egg(x0, y0, z0, 0, 0, 0, u.TPB)
             #eggknowledgement to Molly Carton for this feature.
         else:
             x0 = np.linspace(-50,50,u.RESOLUTION)
             y0, z0 = x0, x0
             if PRIMITIVE_TYPE == "Cube":
-                origShape = f.rect(x0,y0,z0,80,80,80)
+                origShape = f.rect(x0, y0, z0, 80, 80, 80, tpb=u.TPB)
             elif PRIMITIVE_TYPE == "Silo":
-                origShape = f.union(f.sphere(x0,y0,z0,40),f.cylinderY(x0,y0,z0,-40,0,40))
+                origShape = f.union(
+                    f.sphere(x0, y0, z0, 40, u.TPB),
+                    f.cylinderY(x0, y0, z0, -40, 0, 40, u.TPB),
+                    u.TPB,
+                )
             elif PRIMITIVE_TYPE == "Cylinder":
-                origShape = f.cylinderX(x0,y0,z0,-40,40,40)
+                origShape = f.cylinderX(x0, y0, z0, -40, 40, 40, u.TPB)
             elif PRIMITIVE_TYPE == "Sphere":
-                origShape = f.sphere(x0,y0,z0,40)
+                origShape = f.sphere(x0, y0, z0, 40, u.TPB)
             else:
                 print("Selected primitive type has not yet been implemented.")
     else:
@@ -66,39 +70,52 @@ def main():
         return
 
     print("Initial Bounding Box Dimensions: "+str(origShape.shape))
-    origShape = SDF3D(f.condense(origShape,u.BUFFER))
-    if u.NET: origShape = f.shell(origShape,u.NET_THICKNESS)
+    origShape = SDF3D(f.condense(origShape, u.BUFFER, u.TPB), tpb=u.TPB)
+    if u.NET:
+        origShape = f.shell(origShape, u.NET_THICKNESS, u.TPB)
     print("Condensed Bounding Box Dimensions: "+str(origShape.shape))
     
     if u.SUPPORT:
-        projected = f.projection(origShape)
-        support = f.subtract(f.thicken(origShape,1),projected)
-        support = f.intersection(support, f.translate(support,-1,0,0))
+        projected = f.projection(origShape, u.TPB)
+        support = f.subtract(f.thicken(origShape, 1), projected, u.TPB)
+        support = f.intersection(support, f.translate(support, -1, 0, 0, u.TPB), u.TPB)
         contourPlot(support,30,titlestring='Support',axis ="Z")
-        supportPts = genRandPoints(xHeight(support), u.SUPPORT_THRESH)
+        supportPts = genRandPoints(xHeight(support, u.TPB), u.SUPPORT_THRESH)
         supportVoronoi = voronize(support, supportPts, u.SUPPORT_CELL, 0, scale, name = "Support", sliceAxis = "Z")
         if u.PERFORATE: 
-            explosion = f.union(explode(supportPts), f.translate(explode(supportPts),-1,0,0))
-            explosion = f.union(explosion,f.translate(explosion,0,1,0))
-            explosion = f.union(explosion,f.translate(explosion,0,0,1))
-            supportVoronoi = f.subtract(explosion,supportVoronoi)
-        table = f.subtract(f.thicken(origShape,1),f.intersection(f.translate(f.subtract(origShape,f.translate(origShape,-3,0,0)),-1,0,0),projected))
-        supportVoronoi = f.union(table,supportVoronoi)
+            explosion = f.union(
+                explode(supportPts),
+                f.translate(explode(supportPts), -1, 0, 0, u.TPB),
+                u.TPB,
+            )
+            explosion = f.union(explosion, f.translate(explosion, 0, 1, 0, u.TPB), u.TPB)
+            explosion = f.union(explosion, f.translate(explosion, 0, 0, 1, u.TPB), u.TPB)
+            supportVoronoi = f.subtract(explosion, supportVoronoi, u.TPB)
+        table = f.subtract(
+            f.thicken(origShape, 1),
+            f.intersection(
+                f.translate(f.subtract(origShape, f.translate(origShape, -3, 0, 0, u.TPB), u.TPB), -1, 0, 0, u.TPB),
+                projected,
+                u.TPB,
+            ),
+            u.TPB,
+        )
+        supportVoronoi = f.union(table, supportVoronoi, u.TPB)
         findVol(supportVoronoi,scale,u.MAT_DENSITY,"Support")
     
     if u.MODEL:
         if u.AESTHETIC:
-            objectPts = genRandPoints(f.shell(origShape,5),u.MODEL_THRESH)
+            objectPts = genRandPoints(f.shell(origShape, 5, u.TPB), u.MODEL_THRESH)
         else:
             objectPts = genRandPoints(origShape,u.MODEL_THRESH)
         print("Points Generated!")
-        objectVoronoi = voronize(origShape, objectPts, u.MODEL_CELL, u.MODEL_SHELL, scale, name = "Object")
+        objectVoronoi = voronize(origShape, objectPts, u.MODEL_CELL, u.MODEL_SHELL, scale, name="Object")
         findVol(objectVoronoi,scale,u.MAT_DENSITY,"Object") #in mm^3
         if u.AESTHETIC:
-            objectVoronoi = f.union(objectVoronoi,f.thicken(origShape,-5))
+            objectVoronoi = f.union(objectVoronoi, f.thicken(origShape, -5), u.TPB)
     shortName = shortName+"_Voronoi"
     if u.SUPPORT and u.MODEL:
-        complete = f.union(objectVoronoi,supportVoronoi)
+        complete = f.union(objectVoronoi, supportVoronoi, u.TPB)
         if u.IMG_STACK:
             generateImageStack(objectVoronoi,[255,0,0],supportVoronoi,[0,0,255],name = shortName)
     elif u.SUPPORT:
@@ -123,21 +140,21 @@ def main():
         print("Generating Model...")
         if u.SEPARATE_SUPPORTS and u.SUPPORT and u.MODEL:
             if u.SMOOTH:
-                objectVoronoi = f.smooth(objectVoronoi)
+                objectVoronoi = f.smooth(objectVoronoi, tpb=u.TPB)
             generateMesh(objectVoronoi,scale,modelName=fn)
             print("Generating Supports...")
             if u.SMOOTH:
-                supportVoronoi = f.smooth(supportVoronoi)
+                supportVoronoi = f.smooth(supportVoronoi, tpb=u.TPB)
             generateMesh(supportVoronoi,scale,modelName=fn+"Support")
         else:
             if u.SMOOTH:
-                complete = f.smooth(complete)
+                complete = f.smooth(complete, tpb=u.TPB)
             generateMesh(complete,scale,modelName=fn)
         if u.INVERSE and u.MODEL:
             print("Generating Inverse...")
-            inv=f.subtract(objectVoronoi,origShape)
+            inv = f.subtract(objectVoronoi, origShape, u.TPB)
             if u.SMOOTH:
-                inv = f.smooth(inv)
+                inv = f.smooth(inv, tpb=u.TPB)
             print("Generating Mesh...")
             generateMesh(inv,scale,modelName=fn+"Inv")
 
