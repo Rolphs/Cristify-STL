@@ -1,15 +1,39 @@
+"""Helpers for analyzing voxel grids.
+
+This module provides CUDA accelerated utilities to measure the volume and
+mass of generated voxel models.  The functions are primarily used by the
+voronizer pipeline but can be imported directly.
+"""
+
 from numba import cuda
 
 
 @cuda.reduce
 def sum_reduce(a, b):
+    """Reduce function used by CUDA to sum values."""
     return a + b
 
 def findVol(u, scale, MAT_DENSITY, name, tpb=8):
-    #u = input model
-    #scale = [X,Y,Z] size of each voxel, mm
-    #MAT_DENSITY = density (g/mm^3) of the print material
-    #name = name of the input model
+    """Return the volume of ``u`` in cubic millimetres.
+
+    Parameters
+    ----------
+    u : numpy.ndarray
+        Voxel model to analyse.
+    scale : sequence[float]
+        Length of each voxel along ``x``, ``y`` and ``z`` in mm.
+    MAT_DENSITY : float
+        Density of the print material in ``g/mm^3``.
+    name : str
+        Label used when printing results.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    float
+        The computed volume in ``mm^3``.
+    """
     cellVol = scale[0]*scale[1]*scale[2]
     d_u = cuda.to_device(u)
     dims = u.shape
@@ -29,11 +53,13 @@ def findVol(u, scale, MAT_DENSITY, name, tpb=8):
 
 @cuda.jit
 def findVolKernel(d_u):
-    i,j,k = cuda.grid(3)
+    """CUDA kernel that converts voxel occupancy into a boolean mask."""
+    i, j, k = cuda.grid(3)
     dims = d_u.shape
     if i >= dims[0] or j >= dims[1] or k >= dims[2]:
         return
-    if d_u[i,j,k]>0:
-        d_u[i,j,k]=0
+    if d_u[i, j, k] > 0:
+        d_u[i, j, k] = 0
     else:
-        d_u[i,j,k]=1
+        d_u[i, j, k] = 1
+

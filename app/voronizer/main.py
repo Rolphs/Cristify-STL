@@ -1,4 +1,19 @@
-import os #Just used to set up file directory
+"""Voronizer pipeline entry point.
+
+This module contains the :func:`main` function which orchestrates the
+generation of Voronoi-based infill structures.  It can consume either a
+voxelized mesh file or one of the built in primitives defined in
+``PipelineConfig`` and will output voxel grids, plots and optional meshes.
+
+Typical usage::
+
+    from app.voronizer import PipelineConfig
+    from app.voronizer import main as run
+
+    run(PipelineConfig(FILE_NAME="model.stl"))
+"""
+
+import os  # Just used to set up file directory
 import time
 import numpy as np
 from . import Frep as f
@@ -11,7 +26,22 @@ from .visualizeSlice import slicePlot, contourPlot, generateImageStack
 from .voxelize import voxelize
 from .__init__ import PipelineConfig
 
+
 def main(config: PipelineConfig) -> None:
+    """Run the voronizer pipeline with ``config``.
+
+    Parameters
+    ----------
+    config : PipelineConfig
+        Configuration options controlling voxelization, Voronoi
+        generation and mesh export.
+
+    Returns
+    -------
+    None
+        This function is executed for its side effects such as writing
+        output files and displaying plots.
+    """
     start = time.time()
     try:
         os.mkdir(os.path.join(os.path.dirname(__file__), 'Output'))
