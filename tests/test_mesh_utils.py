@@ -1,7 +1,11 @@
 import numpy as np
 import trimesh
 
-from app.core.mesh_utils import repair_mesh, make_watertight
+from app.core.mesh_utils import (
+    repair_mesh,
+    make_watertight,
+    repair_until_watertight,
+)
 
 
 def test_repair_mesh_removes_degenerate():
@@ -27,4 +31,14 @@ def test_make_watertight_fills_hole():
     result = make_watertight(mesh)
     assert result.is_watertight
     # ensure original mesh unchanged
+    assert not mesh.is_watertight
+
+def test_repair_until_watertight():
+    box = trimesh.creation.box()
+    mesh = box.copy()
+    mesh.faces = mesh.faces[:-1]
+    assert not mesh.is_watertight
+
+    result = repair_until_watertight(mesh, max_time_seconds=1)
+    assert result.is_watertight
     assert not mesh.is_watertight
