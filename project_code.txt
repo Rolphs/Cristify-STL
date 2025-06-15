@@ -1,0 +1,745 @@
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/Tronco.py ---
+
+
+import numpy as np
+import trimesh
+
+
+def apply_rough_bark_texture(mesh, roughness_factor=0.1):
+    vertices = mesh.vertices.copy()
+    for i, vertex in enumerate(vertices):
+        # Detectar si el vértice está en la superficie lateral del cilindro
+        if np.isclose(vertex[2], mesh.bounds[0][2]) or np.isclose(vertex[2], mesh.bounds[1][2]):
+            continue
+
+        # Calcular el ángulo y aplicar ruido
+        angle = np.arctan2(vertex[1], vertex[0])
+        noise = roughness_factor * (np.random.rand() - 0.5)
+        vertex[0] += noise * np.cos(angle)
+        vertex[1] += noise * np.sin(angle)
+        vertices[i] = vertex
+
+    mesh.vertices = vertices
+    return mesh
+
+
+# Cargar el modelo del tronco desde un archivo STL
+input_file = 'tu_modelo_tronco.stl'
+output_file = 'tronco_con_corteza.stl'
+tronco = trimesh.load(input_file)
+
+# Aplicar la textura rugosa
+tronco_con_corteza = apply_rough_bark_texture(tronco, roughness_factor=0.2)
+
+# Exportar el nuevo modelo como STL
+tronco_con_corteza.export(output_file)
+
+print(f"Modelo con textura rugosa creado y exportado como '{output_file}'")
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/Verify.py ---
+
+
+import subprocess
+import sys
+import os
+import logging
+from datetime import datetime
+
+# Configuración del logger
+log_filename = "verification.log"
+logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Lista de dependencias necesarias
+dependencies = [
+    "trimesh",
+    "scipy",
+    "numpy",
+    "logging",
+    "os",
+    "cmd",
+    "tkinter",  # tkinter normalmente se incluye con Python, pero la dejamos para verificación
+    "networkx",  # Agregamos networkx a las dependencias
+    "python-docx",  # Agregamos python-docx a las dependencias
+    "tkinterweb",  # Agregamos tkinterweb a las dependencias
+    "Pillow",  # Agregamos Pillow a las dependencias
+    "cairosvg"  # Agregamos cairosvg a las dependencias
+]
+
+# Nombre del entorno virtual esperado
+expected_virtual_env = "Texturas"
+
+def install_package(package):
+    logging.info(f"Instalando {package}...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+def verify_virtual_environment():
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        env_name = os.path.basename(sys.prefix)
+        if env_name == expected_virtual_env:
+            logging.info(f"El entorno virtual '{env_name}' es correcto.")
+        else:
+            logging.warning(f"Advertencia: El entorno virtual activo es '{env_name}', pero se esperaba '{expected_virtual_env}'.")
+    else:
+        logging.warning("Advertencia: No se está ejecutando en un entorno virtual.")
+
+def verify_dependencies():
+    missing_dependencies = []
+    for package in dependencies:
+        try:
+            if package == "tkinter":
+                import tkinter as tk
+                try:
+                    root = tk.Tk()
+                    root.withdraw()  # Ocultar la ventana principal
+                    logging.info(f"{package} está instalado y funciona correctamente.")
+                except tk.TclError as e:
+                    logging.error(f"Error al inicializar {package}: {e}")
+                    missing_dependencies.append(package)
+            else:
+                __import__(package)
+                logging.info(f"{package} está instalado y funciona correctamente.")
+        except ImportError:
+            logging.error(f"Falta instalar la biblioteca: {package}")
+            missing_dependencies.append(package)
+
+    if missing_dependencies:
+        logging.info("Faltan dependencias: " + ", ".join(missing_dependencies))
+        for package in missing_dependencies:
+            install_package(package)
+        logging.info("Todas las dependencias han sido instaladas correctamente.")
+    else:
+        logging.info("Todas las bibliotecas están instaladas correctamente.")
+
+if __name__ == "__main__":
+    logging.info("Iniciando verificación del entorno y dependencias.")
+    verify_virtual_environment()
+    verify_dependencies()
+    logging.info("Verificación completa.")
+
+
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/export_code.py ---
+
+
+import os
+
+def print_tree(directory, prefix='', structure_file=None):
+    # Imprimir el nombre del directorio actual
+    line = f"{prefix}{os.path.basename(directory)}/"
+    print(line)
+    if structure_file:
+        structure_file.write(line + '\n')
+
+    # Obtener el contenido del directorio
+    items = sorted(os.listdir(directory))
+
+    for i, item in enumerate(items):
+        path = os.path.join(directory, item)
+        # Determinar si es el último elemento para ajustar el prefijo
+        if i == len(items) - 1:
+            tree_prefix = f"{prefix}└── "
+        else:
+            tree_prefix = f"{prefix}├── "
+
+        if os.path.isdir(path):
+            # Imprimir subdirectorios (solo el nombre, sin recursión)
+            line = f"{tree_prefix}{item}/"
+            print(line)
+            if structure_file:
+                structure_file.write(line + '\n')
+        elif item.endswith(".py"):
+            # Imprimir archivos
+            line = f"{tree_prefix}{item}"
+            print(line)
+            if structure_file:
+                structure_file.write(line + '\n')
+
+def export_code(directory, code_file):
+    # Obtener el contenido del directorio
+    items = sorted(os.listdir(directory))
+
+    for item in items:
+        if item.endswith(".py"):  # Incluir todos los archivos .py
+            file_path = os.path.join(directory, item)
+            with open(file_path, 'r', encoding='utf-8') as f:
+                header = f"\n\n--- {file_path} ---\n\n"
+                content = f.read()
+                print(header)
+                print(content)
+                if code_file:
+                    code_file.write(header + '\n')
+                    code_file.write(content + '\n')
+
+if __name__ == "__main__":
+    # Obtener la ruta del directorio donde se encuentra este script
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+
+    # Crear el directorio de documentación si no existe
+    documentation_dir = os.path.join(current_directory, 'documentation')
+    os.makedirs(documentation_dir, exist_ok=True)
+
+    # Rutas de los archivos de salida
+    structure_path = os.path.join(documentation_dir, 'project_structure.txt')
+    code_path = os.path.join(documentation_dir, 'project_code.txt')
+
+    # Verificar si los archivos ya existen y anunciar si serán sobrescritos
+    if os.path.exists(structure_path):
+        print(f"Sobrescribiendo el archivo existente: {structure_path}")
+    if os.path.exists(code_path):
+        print(f"Sobrescribiendo el archivo existente: {code_path}")
+
+    # Abrir los archivos de salida para escritura
+    with open(structure_path, 'w', encoding='utf-8') as structure_file, \
+            open(code_path, 'w', encoding='utf-8') as code_file:
+        # Imprimir la estructura del árbol de directorios
+        print("Estructura del proyecto:\n")
+        structure_file.write("Estructura del proyecto:\n\n")
+        print_tree(current_directory, structure_file=structure_file)
+
+        # Exportar el contenido de los archivos .py en un solo archivo
+        export_code(current_directory, code_file)
+
+    print(f"\nLa estructura del proyecto se ha guardado en {structure_path}")
+    print(f"El contenido de los archivos .py se ha guardado en {code_path}")
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/gravitational_tension.py ---
+
+
+import numpy as np
+from scipy.spatial import KDTree
+import trimesh
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def create_kd_tree(vertices: np.ndarray) -> KDTree:
+    return KDTree(vertices)
+
+def apply_gravitational_tension_model(input_mesh: trimesh.Trimesh, kd_tree: KDTree, g: float = 1e-3, tension: float = 0.1) -> np.ndarray:
+    new_vertices = input_mesh.vertices.copy()
+    for i, vertex in enumerate(input_mesh.vertices):
+        distances, indices = kd_tree.query(vertex, k=10)
+        force = np.zeros(3)
+        for dist, index in zip(distances[1:], indices[1:]):
+            direction = input_mesh.vertices[index] - vertex
+            if dist > 0:
+                force += g * direction / (dist ** 2)
+        tension_force = tension * np.sum(new_vertices, axis=0) / len(new_vertices)
+        new_vertices[i] += force - tension_force
+    return new_vertices
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/load_save.py ---
+
+
+import trimesh
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def load_stl(file_path: str) -> trimesh.Trimesh:
+    try:
+        mesh = trimesh.load(file_path)
+        if not isinstance(mesh, trimesh.Trimesh):
+            raise ValueError("El archivo no contiene una malla Trimesh válida.")
+        logging.info("Archivo STL cargado correctamente.")
+        return mesh
+    except Exception as e:
+        logging.error(f"Error al cargar el archivo STL: {e}")
+        return trimesh.Trimesh()
+
+def save_stl(mesh: trimesh.Trimesh, file_path: str) -> None:
+    try:
+        mesh.export(file_path)
+        logging.info(f"Archivo STL guardado en {file_path}")
+    except Exception as e:
+        logging.error(f"Error al guardar el archivo STL: {e}")
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/main.py ---
+
+
+import subprocess
+import sys
+import tkinter as tk
+from tkinter import messagebox
+
+def run_verification():
+    result = subprocess.run([sys.executable, "Verify.py"])
+    if result.returncode != 0:
+        messagebox.showerror("Error", "La verificación de dependencias ha fallado. Por favor, verifica las dependencias.")
+        sys.exit(1)
+
+run_verification()
+
+import os
+import cmd
+from load_save import load_stl, save_stl
+from reorient_repair import reorient_mesh_for_printing, check_mesh_health, repair_mesh
+from texturize_bark import create_kd_tree, apply_gravitational_attraction, fractal_noise as bark_fractal_noise
+from texturize_bone import fractal_noise as bone_fractal_noise
+from texturize_liquid_metal import smooth_mesh
+from simplify_mesh import simplify_mesh
+from gravitational_tension import apply_gravitational_tension_model
+from voronize import voronize_mesh
+from wrap import wrap_mesh
+from menu import App, show_help
+
+class MeshEditor(cmd.Cmd):
+    intro = None
+    prompt = "(editor) "
+    file_path = None
+    mesh = None
+
+    def preloop(self):
+        show_help()
+
+    def do_load(self, arg):
+        print("Executing load...")
+        "Cargar un archivo STL: load <ruta_del_archivo>"
+        if not arg:
+            arg = input("Por favor, proporciona la ruta del archivo STL: ")
+        self.file_path = arg
+        self.mesh = load_stl(arg)
+        if not self.mesh.is_empty:
+            print(f"Malla cargada de {arg}")
+        else:
+            print("Error al cargar la malla.")
+
+    def do_save(self, arg):
+        print("Executing save...")
+        "Guardar el archivo STL: save <ruta_del_archivo>"
+        if self.mesh is None:
+            print("Primero carga una malla con 'load'.")
+            return
+        if not arg:
+            arg = input("Por favor, proporciona la ruta para guardar el archivo STL: ")
+        output_path = arg
+        if os.path.exists(output_path):
+            response = input(f"El archivo {output_path} ya existe. ¿Deseas sobrescribirlo? (s/n): ")
+            if response.lower() != 's':
+                print("Operación cancelada. Elige un nuevo nombre para el archivo.")
+                return
+        save_stl(self.mesh, output_path)
+        print(f"Malla guardada en {output_path}")
+
+    def do_reorient(self, arg):
+        print("Executing reorient...")
+        "Reorientar la malla para impresión: reorient"
+        if self.mesh is None:
+            print("Primero carga una malla con 'load'.")
+            return
+        self.mesh = reorient_mesh_for_printing(self.mesh)
+        print("Malla reorientada para impresión.")
+
+    def do_check_health(self, arg):
+        print("Executing check_health...")
+        "Verificar la salud de la malla: check_health"
+        if self.mesh is None:
+            print("Primero carga una malla con 'load'.")
+            return
+        try:
+            check_mesh_health(self.mesh)
+            print("La malla es watertight y saludable.")
+        except ValueError as e:
+            print(f"Problema detectado: {e}")
+
+    def do_repair(self, arg):
+        print("Executing repair...")
+        "Reparar la malla: repair"
+        if self.mesh is None:
+            print("Primero carga una malla con 'load'.")
+            return
+        try:
+            self.mesh = repair_mesh(self.mesh)
+            print("Malla reparada y es watertight.")
+        except ValueError as e:
+            print(f"No se pudo reparar la malla: {e}")
+
+    def do_texturize_bark(self, arg):
+        print("Executing texturize_bark...")
+        "Aplicar textura de corteza: texturize_bark"
+        if self.mesh is None:
+            print("Primero carga una malla con 'load'.")
+            return
+        kd_tree = create_kd_tree(self.mesh.vertices)
+        self.mesh.vertices = apply_gravitational_attraction(self.mesh, kd_tree)
+        self.mesh.vertices = bark_fractal_noise(self.mesh.vertices)
+        print("Textura de corteza aplicada.")
+
+    def do_texturize_bone(self, arg):
+        print("Executing texturize_bone...")
+        "Aplicar textura de hueso: texturize_bone"
+        if self.mesh is None:
+            print("Primero carga una malla con 'load'.")
+            return
+        self.mesh.vertices = bone_fractal_noise(self.mesh.vertices)
+        print("Textura de hueso aplicada.")
+
+    def do_texturize_liquid_metal(self, arg):
+        print("Executing texturize_liquid_metal...")
+        "Aplicar textura de metal líquido: texturize_liquid_metal"
+        if self.mesh is None:
+            print("Primero carga una malla con 'load'.")
+            return
+        self.mesh.vertices = smooth_mesh(self.mesh.vertices)
+        print("Textura de metal líquido aplicada.")
+
+    def do_simplify_mesh(self, arg):
+        print("Executing simplify_mesh...")
+        "Simplificar la malla: simplify_mesh"
+        if self.mesh is None:
+            print("Primero carga una malla con 'load'.")
+            return
+        self.mesh = simplify_mesh(self.mesh)
+        print("Malla simplificada.")
+
+    def do_apply_gravitational_tension(self, arg):
+        print("Executing apply_gravitational_tension...")
+        "Aplicar modelo gravitacional y de tensión superficial: apply_gravitational_tension"
+        if self.mesh is None:
+            print("Primero carga una malla con 'load'.")
+            return
+        kd_tree = create_kd_tree(self.mesh.vertices)
+        self.mesh.vertices = apply_gravitational_tension_model(self.mesh, kd_tree)
+        print("Modelo gravitacional y de tensión superficial aplicado.")
+
+    def do_voronize(self, arg):
+        print("Executing voronize...")
+        "Aplicar patrón Voronoi a la malla: voronize"
+        if self.mesh is None:
+            print("Primero carga una malla con 'load'.")
+            return
+        self.mesh = voronize_mesh(self.mesh)
+        print("Patrón Voronoi aplicado.")
+
+    def do_wrap(self, arg):
+        print("Executing wrap...")
+        "Aplicar efecto de envoltura a la malla: wrap"
+        if self.mesh is None:
+            print("Primero carga una malla con 'load'.")
+            return
+        self.mesh = wrap_mesh(self.mesh)
+        print("Efecto de envoltura aplicado.")
+
+    def do_exit(self, arg):
+        print("Saliendo del programa...")
+        "Salir del programa: exit"
+        return True
+
+    def do_help(self, arg):
+        show_help()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = App(root, MeshEditor())
+    root.mainloop()
+
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/menu.py ---
+
+
+import os
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from threading import Thread
+import subprocess
+import sys
+from tkinterweb import HtmlFrame
+
+
+class App:
+    def __init__(self, root, mesh_editor):
+        self.root = root
+        self.mesh_editor = mesh_editor
+        self.create_widgets()
+        self.root.attributes('-topmost', True)  # Hacer la ventana siempre en primer plano
+
+    def create_widgets(self):
+        self.root.title("3D Mesh Editor")
+
+        # Establecer tamaño de la ventana
+        self.root.geometry("800x600")  # Ajusta según sea necesario
+
+        # Logo
+        logo_frame = tk.Frame(self.root)
+        logo_frame.pack(pady=10)
+        logo_path = '/Users/raulmb/PycharmProjects/New Process Mesh/Texturas/Images/eidos logo.svg'  # Ruta al archivo SVG
+
+        # Usar tkinterweb para cargar y mostrar el SVG
+        logo_widget = HtmlFrame(logo_frame)
+        logo_widget.load_file(logo_path)
+        logo_widget.pack()
+
+        # Menú superior
+        self.menu_frame = tk.Frame(self.root)
+        self.menu_frame.pack(pady=10)
+
+        tk.Button(self.menu_frame, text="Load...(l)", command=lambda: self.run_command(self.mesh_editor.do_load)).grid(
+            row=0, column=0, padx=5)
+        tk.Button(self.menu_frame, text="Save...(s)", command=lambda: self.run_command(self.mesh_editor.do_save)).grid(
+            row=0, column=1, padx=5)
+        tk.Button(self.menu_frame, text="Exit...(X)", command=self.root.quit).grid(row=0, column=2, padx=5)
+        tk.Button(self.menu_frame, text="?...(h)", command=lambda: self.run_command(self.mesh_editor.do_help)).grid(
+            row=0, column=3, padx=5)
+
+        # Espacio y línea divisoria
+        tk.Label(self.root, text="").pack()
+        tk.Label(self.root, text="").pack()
+        tk.Frame(self.root, height=2, bd=1, relief=tk.SUNKEN).pack(fill=tk.X, padx=5, pady=5)
+
+        # Comandos de edición
+        self.command_frame = tk.Frame(self.root)
+        self.command_frame.pack(pady=10)
+
+        commands = [
+            ("Reorient...(r)", self.mesh_editor.do_reorient),
+            ("Check Health...(ch)", self.mesh_editor.do_check_health),
+            ("Repair...(rp)", self.mesh_editor.do_repair),
+            ("Texturize Bark...(tb)", self.mesh_editor.do_texturize_bark),
+            ("Texturize Bone...(tn)", self.mesh_editor.do_texturize_bone),
+            ("Texturize Liquid Metal...(tlm)", self.mesh_editor.do_texturize_liquid_metal),
+            ("Simplify Mesh...(sm)", self.mesh_editor.do_simplify_mesh),
+            ("Apply Gravitational Tension...(gt)", self.mesh_editor.do_apply_gravitational_tension),
+            ("Voronize...(vz)", self.mesh_editor.do_voronize),
+            ("Wrap...(wp)", self.mesh_editor.do_wrap),
+        ]
+
+        for i, (text, command) in enumerate(commands):
+            tk.Button(self.command_frame, text=text, command=lambda cmd=command: self.run_command(cmd)).grid(row=i // 2,
+                                                                                                             column=i % 2,
+                                                                                                             padx=5,
+                                                                                                             pady=5,
+                                                                                                             sticky="ew")
+
+        # Línea divisoria para las herramientas de desarrollo
+        tk.Label(self.root, text="").pack()
+        tk.Frame(self.root, height=2, bd=1, relief=tk.SUNKEN).pack(fill=tk.X, padx=5, pady=5)
+        tk.Label(self.root, text="").pack()
+
+        # Herramientas de desarrollo
+        self.dev_tools_frame = tk.Frame(self.root)
+        self.dev_tools_frame.pack(pady=10)
+
+        dev_tools = [
+            ("Verify Environment...(P)", self.verify_environment),
+            ("Export Code...(E)", self.export_code)
+        ]
+
+        for i, (text, command) in enumerate(dev_tools):
+            tk.Button(self.dev_tools_frame, text=text, command=lambda cmd=command: self.run_command(cmd)).grid(row=i,
+                                                                                                               column=0,
+                                                                                                               padx=5,
+                                                                                                               pady=5,
+                                                                                                               sticky="ew")
+
+        # Estado del programa
+        self.status_label = tk.Label(self.root, text="Estado: Listo", anchor="w")
+        self.status_label.pack(fill=tk.X, padx=5, pady=5)
+
+    def run_command(self, command):
+        def wrapper():
+            self.status_label.config(text="Estado: Ejecutando...")
+            try:
+                command(None)
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+            self.status_label.config(text="Estado: Listo")
+
+        thread = Thread(target=wrapper)
+        thread.start()
+
+    def verify_environment(self, _):
+        self.status_label.config(text="Estado: Verificando entorno y dependencias...")
+        try:
+            subprocess.run([sys.executable, "Verify.py"], check=True)
+            messagebox.showinfo("Verificación", "El entorno y las dependencias están correctamente configurados.")
+        except subprocess.CalledProcessError as e:
+            messagebox.showerror("Error de verificación", f"Error al verificar el entorno: {e}")
+        self.status_label.config(text="Estado: Listo")
+
+    def export_code(self, _):
+        self.status_label.config(text="Estado: Exportando código fuente...")
+        try:
+            subprocess.run([sys.executable, "export_code.py"], check=True)
+            export_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'documentation')
+            messagebox.showinfo("Exportación", f"El código fuente ha sido exportado a {export_path}")
+        except subprocess.CalledProcessError as e:
+            messagebox.showerror("Error de exportación", f"Error al exportar el código: {e}")
+        self.status_label.config(text="Estado: Listo")
+
+
+def show_help():
+    print("Comandos disponibles:")
+    print("    Load......................(l)  - Cargar un archivo STL")
+    print("    Save......................(s)  - Guardar el archivo STL")
+    print("    Exit......................(X)  - Salir del programa")
+    print("    ?.........................(h)  - Mostrar este mensaje de ayuda")
+    print()
+    print("    Reorient..................(r)  - Reorientar la malla para impresión")
+    print("    Check Health.............(ch)  - Verificar la salud de la malla")
+    print("    Repair...................(rp)  - Reparar la malla")
+    print("    Texturize Bark...........(tb)  - Aplicar textura de corteza")
+    print("    Texturize Bone...........(tn)  - Aplicar textura de hueso")
+    print("    Texturize Liquid Metal...(tlm) - Aplicar textura de metal líquido")
+    print("    Simplify Mesh............(sm)  - Simplificar la malla")
+    print("    Apply Gravitational Tension...(gt) - Aplicar modelo gravitacional y de tensión superficial")
+    print("    Voronize.................(vz)  - Aplicar patrón Voronoi a la malla")
+    print("    Wrap.....................(wp)  - Aplicar efecto de envoltura a la malla")
+    print("    Verify Environment.......(P)  - Verificar entorno y dependencias")
+    print("    Export Code..............(E)  - Exportar código fuente")
+
+
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/reorient_repair.py ---
+
+
+import trimesh
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def reorient_mesh_for_printing(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
+    mesh.rezero()
+    orientation = mesh.bounding_box_oriented.primitive.transform
+    mesh.apply_transform(orientation)
+    logging.info("Malla reorientada para la mejor posición de impresión.")
+    return mesh
+
+def check_mesh_health(mesh: trimesh.Trimesh) -> None:
+    if not mesh.is_watertight:
+        raise ValueError("La malla no es watertight.")
+    logging.info("La malla es watertight y saludable.")
+
+def repair_mesh(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
+    mesh.fill_holes()
+    mesh.update_faces(mesh.nondegenerate_faces())
+    mesh.update_faces(mesh.unique_faces())
+    mesh.remove_infinite_values()
+    mesh.remove_unreferenced_vertices()
+    if not mesh.is_watertight:
+        raise ValueError("La malla no se pudo reparar para ser watertight.")
+    logging.info("Malla reparada y es watertight.")
+    return mesh
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/simplify_mesh.py ---
+
+
+import trimesh
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def simplify_mesh(mesh: trimesh.Trimesh, target_reduction: float = 0.5) -> trimesh.Trimesh:
+    logging.info("Simplificando la malla.")
+    # Implementación simplificada para fines ilustrativos
+    # Aquí iría el código para simplificar la malla
+    return mesh
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/texturize_bark.py ---
+
+
+import numpy as np
+from scipy.spatial import KDTree
+import trimesh
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def create_kd_tree(vertices: np.ndarray) -> KDTree:
+    """Crea un árbol KD a partir de los vértices de la malla."""
+    return KDTree(vertices)
+
+def apply_gravitational_attraction(input_mesh: trimesh.Trimesh, kd_tree: KDTree, g: float = 1e-3) -> np.ndarray:
+    """Aplica una fuerza de atracción gravitacional entre los vértices."""
+    new_vertices = input_mesh.vertices.copy()
+    for i, vertex in enumerate(input_mesh.vertices):
+        distances, indices = kd_tree.query(vertex, k=10)
+        force = np.zeros(3)
+        for dist, index in zip(distances[1:], indices[1:]):
+            direction = input_mesh.vertices[index] - vertex
+            if dist > 0:
+                force += g * direction / (dist ** 2)
+        new_vertices[i] += force
+    return new_vertices
+
+def fractal_noise(vertices: np.ndarray, scale: float = 0.1, octaves: int = 4) -> np.ndarray:
+    """Añade ruido fractal a los vértices para crear detalles orgánicos."""
+    noise = np.zeros_like(vertices)
+    for octave in range(octaves):
+        frequency = 2 ** octave
+        amplitude = scale / frequency
+        noise += amplitude * np.random.randn(*vertices.shape)
+    return vertices + noise
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/texturize_bone.py ---
+
+
+import numpy as np
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def fractal_noise(vertices: np.ndarray, scale: float = 0.1, octaves: int = 4) -> np.ndarray:
+    """Añade ruido fractal a los vértices para crear detalles orgánicos."""
+    noise = np.zeros_like(vertices)
+    for octave in range(octaves):
+        frequency = 2 ** octave
+        amplitude = scale / frequency
+        noise += amplitude * np.random.randn(*vertices.shape)
+    return vertices + noise
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/texturize_liquid_metal.py ---
+
+
+import trimesh
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def smooth_mesh(mesh: trimesh.Trimesh, iterations: int = 100) -> trimesh.Trimesh:
+    logging.info("Suavizando la malla.")
+    trimesh.smoothing.filter_taubin(mesh, iterations=iterations)
+    return mesh
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/voronize.py ---
+
+
+import trimesh
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def voronize_mesh(mesh: trimesh.Trimesh, density: float = 1.0) -> trimesh.Trimesh:
+    logging.info("Aplicando patrón Voronoi a la malla.")
+    # Implementación simplificada para fines ilustrativos
+    # Aquí iría el código para voronizar la malla
+    return mesh
+
+
+--- /Users/raulmb/PycharmProjects/New Process Mesh/Texturas/wrap.py ---
+
+
+import trimesh
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def wrap_mesh(input_mesh: trimesh.Trimesh, wrap_thickness: float = 0.1) -> trimesh.Trimesh:
+    logging.info("Aplicando efecto de envoltura a la malla.")
+    # Implementación simplificada para fines ilustrativos
+    # Aquí iría el código para envolver la malla
+    return input_mesh
+
