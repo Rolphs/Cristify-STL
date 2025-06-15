@@ -8,7 +8,12 @@ from typing import Sequence
 from app.core.io import load_mesh, save_mesh
 from app.core.cristify import cristify_mesh
 from app.core.mesh_utils import repair_mesh, make_watertight
-from app.core import analyze_mesh
+from app.core import (
+    analyze_mesh,
+    gaudify_mesh,
+    wrap_mesh,
+    simplify_mesh,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -37,6 +42,22 @@ def build_parser() -> argparse.ArgumentParser:
 
     analyze = sub.add_parser("analyze", help="Analyze a mesh")
     analyze.add_argument("--input", required=True, help="Path to input mesh file")
+
+    gaudi = sub.add_parser("gaudify", help="Gaudify a mesh to reduce overhangs")
+    gaudi.add_argument("--input", required=True, help="Path to input mesh file")
+    gaudi.add_argument("--output", required=True, help="Destination path for processed mesh")
+    gaudi.add_argument("--angle", type=float, default=45.0, help="Maximum overhang angle")
+    gaudi.add_argument("--iterations", type=int, default=10, help="Maximum iterations")
+
+    wrap = sub.add_parser("wrap", help="Offset mesh vertices outward")
+    wrap.add_argument("--input", required=True, help="Path to input mesh file")
+    wrap.add_argument("--output", required=True, help="Destination path for processed mesh")
+    wrap.add_argument("--thickness", type=float, default=0.1, help="Offset distance")
+
+    simp = sub.add_parser("simplify", help="Simplify a mesh")
+    simp.add_argument("--input", required=True, help="Path to input mesh file")
+    simp.add_argument("--output", required=True, help="Destination path for processed mesh")
+    simp.add_argument("--reduction", type=float, default=0.5, help="Fraction of faces to remove")
 
     return parser
 
@@ -75,6 +96,22 @@ def main(args: Sequence[str] | None = None) -> int:
         mesh = load_mesh(opts.input)
         analysis = analyze_mesh(mesh)
         print(analysis)
+    elif opts.command == "gaudify":
+        mesh = load_mesh(opts.input)
+        result = gaudify_mesh(
+            mesh,
+            max_overhang_angle=opts.angle,
+            max_iterations=opts.iterations,
+        )
+        save_mesh(result, opts.output)
+    elif opts.command == "wrap":
+        mesh = load_mesh(opts.input)
+        result = wrap_mesh(mesh, wrap_thickness=opts.thickness)
+        save_mesh(result, opts.output)
+    elif opts.command == "simplify":
+        mesh = load_mesh(opts.input)
+        result = simplify_mesh(mesh, target_reduction=opts.reduction)
+        save_mesh(result, opts.output)
     else:
         raise ValueError("Unknown command")
     return 0
