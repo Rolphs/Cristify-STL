@@ -18,6 +18,15 @@ import dearpygui.dearpygui as dpg
 
 from app.core.cristify import cristify_mesh
 from app.core.io import load_mesh, save_mesh
+from app.core import (
+    repair_mesh,
+    make_watertight,
+    analyze_mesh,
+    gaudify_mesh,
+    wrap_mesh,
+    simplify_mesh,
+)
+from app.core.texturize import make_organic_with_gravity
 from app.gui.viewer import MeshViewer
 from app.voronizer import PipelineConfig, run_pipeline
 
@@ -73,6 +82,43 @@ def _run_voronize(sender, app_data, user_data) -> None:  # pragma: no cover - UI
     run_pipeline(config)
 
 
+def _apply_repair() -> None:  # pragma: no cover - UI
+    """Repair the current mesh."""
+    global _current_mesh
+    if _current_mesh is None:
+        return
+    if dpg.get_value("repair_watertight"):
+        _current_mesh = make_watertight(_current_mesh)
+    else:
+        _current_mesh = repair_mesh(_current_mesh)
+    _viewer.set_mesh(_current_mesh)
+
+
+def _analyze_current() -> None:  # pragma: no cover - UI
+    if _current_mesh is None:
+        return
+    metrics = analyze_mesh(_current_mesh)
+    text = "\n".join(f"{k}: {v}" for k, v in metrics.items())
+    dpg.set_value("analysis_text", text)
+    dpg.show_item("analysis_dialog")
+
+
+def _apply_transform() -> None:  # pragma: no cover - UI
+    global _current_mesh
+    if _current_mesh is None:
+        return
+    op = dpg.get_value("transform_combo")
+    if op == "Gaudify":
+        _current_mesh = gaudify_mesh(_current_mesh)
+    elif op == "Simplify":
+        _current_mesh = simplify_mesh(_current_mesh, target_reduction=0.5)
+    elif op == "Wrap":
+        _current_mesh = wrap_mesh(_current_mesh)
+    elif op == "Texturize":
+        _current_mesh = make_organic_with_gravity(_current_mesh)
+    _viewer.set_mesh(_current_mesh)
+
+
 def main() -> None:  # pragma: no cover - manual run
     """Launch the GUI application."""
 
@@ -81,10 +127,19 @@ def main() -> None:  # pragma: no cover - manual run
     global _viewer
     _viewer = MeshViewer()
 
-    with dpg.window(label="Cristify STL", width=200, height=180):
+    with dpg.window(label="Cristify STL", width=220, height=320):
         dpg.add_button(label="Load STL", callback=_open_load_dialog)
         dpg.add_button(label="Apply Cristify", callback=_apply_cristify)
         dpg.add_button(label="Voronize", callback=_open_voronize_dialog)
+        dpg.add_button(label="Repair", callback=_apply_repair)
+        dpg.add_checkbox(label="Watertight", tag="repair_watertight")
+        dpg.add_button(label="Analyze", callback=_analyze_current)
+        dpg.add_combo(
+            ["Gaudify", "Simplify", "Wrap", "Texturize"],
+            tag="transform_combo",
+            default_value="Gaudify",
+        )
+        dpg.add_button(label="Apply Transform", callback=_apply_transform)
         dpg.add_button(label="Save STL", callback=_open_save_dialog)
 
     with dpg.file_dialog(
@@ -107,6 +162,10 @@ def main() -> None:  # pragma: no cover - manual run
     with dpg.window(label="Voronize", modal=True, show=False, tag="voro_dialog"):
         dpg.add_input_text(label="STL file name", tag="voro_file")
         dpg.add_button(label="Run", callback=_run_voronize)
+
+    with dpg.window(label="Analysis", modal=True, show=False, tag="analysis_dialog"):
+        dpg.add_text(tag="analysis_text")
+        dpg.add_button(label="Close", callback=lambda: dpg.hide_item("analysis_dialog"))
 
     dpg.create_viewport(title="Cristify STL", width=800, height=600)
     dpg.setup_dearpygui()
