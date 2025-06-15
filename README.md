@@ -12,6 +12,14 @@ tool or via the minimal GUI.
 
 This code (and the algorithms within) are described by the paper freely available online: http://utw10945.utweb.utexas.edu/sites/default/files/2019/153%20Using%20Parallel%20Computing%20Techniques%20to%20Algorithmic.pdf
 
+## Installation
+
+Install the Python dependencies with:
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Setting Up Your Machine
 
 This script uses CUDA, a parallel processing library.  It requires that you have an Nvidia graphics card installed and that your computer is set up with the CUDA Toolkit.  Instructions are available here: https://developer.nvidia.com/how-to-cuda-python
@@ -23,6 +31,21 @@ I recommend using the Anaconda Python 3.X package, which comes with all the rele
 https://www.anaconda.com/distribution/
 
 Some alternatives to having your own GPU installed are listed on the above website.
+
+## Command-Line Interface
+
+Run the tools via the module entry point:
+
+```bash
+python -m app.cli --help
+```
+
+The main commands are `cristify` and `voronize`. Useful options include:
+
+* `--input`, `--output`, `--amount`, `--axis`, `--floor` (for `cristify`)
+* `--file-name`, `--primitive-type`, `--resolution`, `--tpb`, `--model`, `--support` (for `voronize`)
+
+Refer to `--help` on any command for full details of the available arguments.
 
 ## Running the Tools
 
