@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import trimesh
 import open3d as o3d
+import time
 
 
 def _to_open3d(mesh: trimesh.Trimesh) -> o3d.geometry.TriangleMesh:
@@ -65,4 +66,27 @@ def make_watertight(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     return repaired
 
 
-__all__ = ["repair_mesh", "make_watertight"]
+def repair_until_watertight(
+    mesh: trimesh.Trimesh, max_time_seconds: int = 300
+) -> trimesh.Trimesh:
+    """Iteratively repair ``mesh`` until it becomes watertight or time expires."""
+
+    working = mesh.copy()
+    start = time.time()
+    while time.time() - start < max_time_seconds:
+        working.fill_holes()
+        working.remove_degenerate_faces()
+        working.update_faces(working.unique_faces())
+        working.remove_infinite_values()
+        working.remove_unreferenced_vertices()
+        working.process(validate=True)
+        if working.is_watertight:
+            break
+    return working
+
+
+__all__ = [
+    "repair_mesh",
+    "make_watertight",
+    "repair_until_watertight",
+]

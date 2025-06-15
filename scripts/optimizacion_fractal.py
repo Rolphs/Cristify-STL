@@ -1,15 +1,10 @@
+"""Example usage of :func:`app.core.fractal.generate_fractal_geometry`."""
+
 import numpy as np
+from app.core.fractal import generate_fractal_geometry
 
-def generate_fractal_geometry(vertices, edges, iterations=1):
-    new_vertices = vertices.tolist()
-    for _ in range(iterations):
-        edge_to_new_vertex = {}
-        for edge in edges:
-            edge = tuple(sorted(edge))
-            if edge not in edge_to_new_vertex:
-                midpoint = (vertices[edge[0]] + vertices[edge[1]]) / 2.0
-                new_vertex_index = len(new_vertices)
-                new_vertices.append(midpoint)
-                edge_to_new_vertex[edge] = new_vertex_index
-
-    return np.array(new_vertices), edges
+if __name__ == "__main__":
+    verts = np.array([[0, 0, 0], [1, 0, 0]])
+    edges = [(0, 1)]
+    new_verts, _ = generate_fractal_geometry(verts, edges, iterations=1)
+    print(new_verts)

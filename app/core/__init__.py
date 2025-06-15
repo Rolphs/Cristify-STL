@@ -2,7 +2,8 @@
 
 from .intervention import analyze_mesh
 from .cristify import cristify_mesh
-from .mesh_utils import repair_mesh, make_watertight
+from .mesh_utils import repair_mesh, make_watertight, repair_until_watertight
+from .fractal import generate_fractal_geometry
 from .gaudify import (
     get_overhang_faces,
     modify_overhangs,
@@ -17,6 +18,8 @@ __all__ = [
     "cristify_mesh",
     "repair_mesh",
     "make_watertight",
+    "repair_until_watertight",
+    "generate_fractal_geometry",
     "gaudify_mesh",
     "get_overhang_faces",
     "modify_overhangs",
