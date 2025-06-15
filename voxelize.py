@@ -155,7 +155,7 @@ def padVoxelArrayKernel(d_u,d_v,padding):
     d_v[i+padding,j+padding,k+padding] = d_u[i,j,k]
 
 def padVoxelArray(voxels,padding):
-    d_u = cuda.to_device(u)
+    d_u = cuda.to_device(voxels)
     dims = voxels.shape
     new_shape = (dims[0]+2*padding,dims[1]+2*padding,dims[2]+2*padding)
     v = np.zeros(new_shape, dtype=np.float32)
