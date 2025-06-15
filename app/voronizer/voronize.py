@@ -1,14 +1,21 @@
-from visualizeSlice import slicePlot, contourPlot
-import Frep as f
-from SDF3D import SDF3D, jumpFlood
+from .visualizeSlice import slicePlot, contourPlot
+from . import Frep as f
+from .SDF3D import SDF3D, jumpFlood
 from numba import cuda
 import numpy as np
-import userInput as u
-try: TPB = u.TPB 
-except: TPB = 8
 
-def voronize(origObject, seedPoints, cellThickness, shellThickness, scale,
-             name = "", sliceLocation = 0, sliceAxis = "X", order = 2):
+def voronize(
+    origObject,
+    seedPoints,
+    cellThickness,
+    shellThickness,
+    scale,
+    name="",
+    sliceLocation=0,
+    sliceAxis="X",
+    order=2,
+    tpb=8,
+):
     #origObject = voxel model of original object, negative = inside
     #seedPoints = same-size matrix with 0s at the location of each seed point, 1s elsewhere
     #wallThickness  = desired minimum thickness of cell walls (mm).
@@ -22,7 +29,7 @@ def voronize(origObject, seedPoints, cellThickness, shellThickness, scale,
             sliceLocation = resY//2
         else:
             sliceLocation = resZ//2
-    seedPoints = jumpFlood(seedPoints,order)
+    seedPoints = jumpFlood(seedPoints, order)
     if name !="":
         contourPlot(seedPoints[:,:,:,3],sliceLocation,titlestring="SDF of the Points for "+name,axis = sliceAxis)
     voronoi = wallFinder(seedPoints)
@@ -65,7 +72,11 @@ def wallFinder(voxel):
     dims = voxel.shape
     d_points = cuda.to_device(voxel)
     d_walls = cuda.to_device(np.ones(dims[:3]))
-    gridSize = [(dims[0]+TPB-1)//TPB, (dims[1]+TPB-1)//TPB,(dims[2]+TPB-1)//TPB]
-    blockSize = [TPB, TPB, TPB]
-    wallFinderKernel[gridSize, blockSize](d_points,d_walls)
+    gridSize = [
+        (dims[0] + tpb - 1) // tpb,
+        (dims[1] + tpb - 1) // tpb,
+        (dims[2] + tpb - 1) // tpb,
+    ]
+    blockSize = [tpb, tpb, tpb]
+    wallFinderKernel[gridSize, blockSize](d_points, d_walls)
     return d_walls.copy_to_host()

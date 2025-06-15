@@ -1,13 +1,11 @@
 from numba import cuda
-import userInput as u
-try: TPB = u.TPB 
-except: TPB = 8
+
 
 @cuda.reduce
 def sum_reduce(a, b):
     return a + b
 
-def findVol(u,scale,MAT_DENSITY,name):
+def findVol(u, scale, MAT_DENSITY, name, tpb=8):
     #u = input model
     #scale = [X,Y,Z] size of each voxel, mm
     #MAT_DENSITY = density (g/mm^3) of the print material
@@ -15,8 +13,12 @@ def findVol(u,scale,MAT_DENSITY,name):
     cellVol = scale[0]*scale[1]*scale[2]
     d_u = cuda.to_device(u)
     dims = u.shape
-    gridSize = [(dims[0]+TPB-1)//TPB, (dims[1]+TPB-1)//TPB,(dims[2]+TPB-1)//TPB]
-    blockSize = [TPB, TPB, TPB]
+    gridSize = [
+        (dims[0] + tpb - 1) // tpb,
+        (dims[1] + tpb - 1) // tpb,
+        (dims[2] + tpb - 1) // tpb,
+    ]
+    blockSize = [tpb, tpb, tpb]
     findVolKernel[gridSize, blockSize](d_u)
     u = d_u.copy_to_host()
     count = sum_reduce(cuda.to_device(u.flatten()))

@@ -1,9 +1,6 @@
 from numba import cuda
-from Frep import union
 import numpy as np
-import userInput as u
-try: TPB = u.TPB 
-except: TPB = 8
+from .Frep import union
 
 @cuda.reduce
 def sum_reduce(a, b):
@@ -19,13 +16,13 @@ def genRandPointsKernel(d_u, d_r, d_v, threshold):
             #threshold/abs(d_u[i,j,k]) can be replaced with any desired function.
             d_v[i,j,k] = 0
 
-def genRandPoints(u,threshold):
+def genRandPoints(u, threshold, tpb=8):
     #u = Voxel model of boundary object.
     #threshold = normalized value to determine how likely it is for each voxel to have a point placed in it.
     #Outputs a matrix with random points within the boundaries of object u.  The random points are set to 0 while the rest of the matrix is ones.
     x,y,z = u.shape
     threshold=threshold/max(x,y,z) 
-    TPBX, TPBY, TPBZ = TPB, TPB, TPB
+    TPBX = TPBY = TPBZ = tpb
     d_r = cuda.to_device(np.random.rand(x,y,z))
     d_u = cuda.to_device(u)
     d_v = cuda.to_device(np.ones(u.shape)) #Generates a matrix for us to plot the points in 
