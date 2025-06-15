@@ -1,13 +1,12 @@
 from numba import cuda
 import numpy as np
 import math
-import userInput as u
-try: TPB = u.TPB 
-except: TPB = 8
+
 
 @cuda.jit
 def smoothKernel(d_u, d_v, buffer):
-    i,j,k = cuda.grid(3)
+    """Average each voxel with its neighbors ignoring ``buffer`` layers."""
+    i, j, k = cuda.grid(3)
     count = 0
     dims = d_u.shape
     if i>=dims[0]-buffer or j>=dims[1]-buffer or k>=dims[2]-buffer or i<buffer or j<buffer or k<buffer:
@@ -21,12 +20,26 @@ def smoothKernel(d_u, d_v, buffer):
                 count+=1
         d_v[i,j,k] = d_v[i,j,k]/count
 
-def smooth(u,iteration = 1,buffer=0):
-    #u = input voxel model
-    #iteration = number of times to run the algorithm
-    #buffer = Layers of voxels on the boundaries of the box that are left untouched
-    #Outputs a new matrix with each value set to the average of its neighbor's values.
-    TPBX, TPBY, TPBZ = TPB, TPB, TPB
+def smooth(u, iteration=1, buffer=0, tpb=8):
+    """Return ``u`` after ``iteration`` smoothing passes.
+
+    Parameters
+    ----------
+    u : numpy.ndarray
+        Input voxel grid.
+    iteration : int, optional
+        Number of smoothing iterations.
+    buffer : int, optional
+        Number of boundary layers left unchanged.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Smoothed voxel grid.
+    """
+    TPBX, TPBY, TPBZ = tpb, tpb, tpb
     dims = u.shape
     d_u = cuda.to_device(u)
     d_v = cuda.to_device(u)
@@ -45,42 +58,74 @@ def boolKernel(d_u,d_v):
         return
     d_u[i,j,k] = min(d_u[i,j,k],d_v[i,j,k])
     
-def union(u,v):
-    #u,v = voxel models that you want to union
-    #Outputs the union of the models (fills in the resulting matrix such that 
-    #if a cell is negative in either u or v, it is negative in the output).
+def union(u, v, tpb=8):
+    """Return the voxel-wise union of ``u`` and ``v``.
+
+    Parameters
+    ----------
+    u, v : numpy.ndarray
+        Input voxel models.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Combined voxel model.
+    """
     d_u = cuda.to_device(u)
     d_v = cuda.to_device(v)
     dims = u.shape
-    gridSize = [(dims[0]+TPB-1)//TPB, (dims[1]+TPB-1)//TPB,(dims[2]+TPB-1)//TPB]
-    blockSize = [TPB, TPB, TPB]
-    boolKernel[gridSize, blockSize](d_u,d_v)
+    gridSize = [(dims[0]+tpb-1)//tpb, (dims[1]+tpb-1)//tpb, (dims[2]+tpb-1)//tpb]
+    blockSize = [tpb, tpb, tpb]
+    boolKernel[gridSize, blockSize](d_u, d_v)
     return d_u.copy_to_host()
 
-def intersection(u,v):
-    #u,v = voxel models that you want to intersect
-    #Outputs the intersection of the models (fills in the resulting matrix such
-    #that if a cell is positive in either u or v, it is positive in the output).
-    d_u = cuda.to_device(-1*u)
-    d_v = cuda.to_device(-1*v)
-    dims = u.shape
-    gridSize = [(dims[0]+TPB-1)//TPB, (dims[1]+TPB-1)//TPB,(dims[2]+TPB-1)//TPB]
-    blockSize = [TPB, TPB, TPB]
-    boolKernel[gridSize, blockSize](d_u,d_v)
-    return -1*d_u.copy_to_host()
+def intersection(u, v, tpb=8):
+    """Return the intersection of ``u`` and ``v``.
 
-def subtract(u,v):
-    #u = cutting tool model (Model that's removed)
-    #v = base model
-    #Outputs the subtraction of the models (fills in the resulting matrix such
-    #that if a cell is negative in u, it's positive in the output)
-    d_u = cuda.to_device(u)
-    d_v = cuda.to_device(-1*v)
+    Parameters
+    ----------
+    u, v : numpy.ndarray
+        Input voxel models.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Voxel model containing only overlapping cells.
+    """
+    d_u = cuda.to_device(-1 * u)
+    d_v = cuda.to_device(-1 * v)
     dims = u.shape
-    gridSize = [(dims[0]+TPB-1)//TPB, (dims[1]+TPB-1)//TPB,(dims[2]+TPB-1)//TPB]
-    blockSize = [TPB, TPB, TPB]
-    boolKernel[gridSize, blockSize](d_u,d_v)
-    return -1*d_u.copy_to_host()
+    gridSize = [(dims[0] + tpb - 1) // tpb, (dims[1] + tpb - 1) // tpb, (dims[2] + tpb - 1) // tpb]
+    blockSize = [tpb, tpb, tpb]
+    boolKernel[gridSize, blockSize](d_u, d_v)
+    return -1 * d_u.copy_to_host()
+
+def subtract(u, v, tpb=8):
+    """Subtract ``u`` from ``v``.
+
+    Parameters
+    ----------
+    u, v : numpy.ndarray
+        ``u`` is the cutting tool, ``v`` the base model.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Resulting voxel grid.
+    """
+    d_u = cuda.to_device(u)
+    d_v = cuda.to_device(-1 * v)
+    dims = u.shape
+    gridSize = [(dims[0] + tpb - 1) // tpb, (dims[1] + tpb - 1) // tpb, (dims[2] + tpb - 1) // tpb]
+    blockSize = [tpb, tpb, tpb]
+    boolKernel[gridSize, blockSize](d_u, d_v)
+    return -1 * d_u.copy_to_host()
 
 @cuda.jit
 def projectionKernel(d_u,X):
@@ -90,10 +135,22 @@ def projectionKernel(d_u,X):
         if d_u[X+1,j,k]<=0:
             d_u[X,j,k]=-1    
 
-def projection(u):
-    #u = voxelized model, negative = internal
-    #Assumes X is the vertical axis, projects entire part to lowest X value.
-    TPBY, TPBZ = TPB, TPB
+def projection(u, tpb=8):
+    """Project ``u`` downwards along the X axis until contact.
+
+    Parameters
+    ----------
+    u : numpy.ndarray
+        Voxel model to project.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Projected voxel model.
+    """
+    TPBY, TPBZ = tpb, tpb
     m, n, p = u.shape
     minX = -1
     i = 0
@@ -104,7 +161,7 @@ def projection(u):
             i += 1
     X = m-1
     d_u = cuda.to_device(u)
-    gridDims = (n+TPBY-1)//TPBY, (p+TPBZ-1)//TPBZ
+    gridDims = (n + TPBY - 1) // TPBY, (p + TPBZ - 1) // TPBZ
     blockDims = TPBY, TPBZ
     while X>minX:
         X -= 1
@@ -119,28 +176,38 @@ def translateKernel(d_u,d_v,x,y,z):
         return
     d_v[i,j,k] = d_u[(i-x)%m,(j-y)%n,(k-z)%p]
     
-def translate(u,x,y,z):
-    #u = voxel model to translate
-    #x,y,z = translation vector, integers in voxels
-    #moves the model according to the translation vector.
+def translate(u, x, y, z, tpb=8):
+    """Translate ``u`` by integer offsets ``x``, ``y``, ``z``.
+
+    Parameters
+    ----------
+    u : numpy.ndarray
+        Voxel grid to translate.
+    x, y, z : int
+        Translation in voxels.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Translated voxel grid.
+    """
     d_u = cuda.to_device(u)
-    d_v = cuda.device_array(shape = u.shape, dtype = np.float32)
+    d_v = cuda.device_array(shape=u.shape, dtype=np.float32)
     dims = u.shape
-    gridSize = [(dims[0]+TPB-1)//TPB, (dims[1]+TPB-1)//TPB,(dims[2]+TPB-1)//TPB]
-    blockSize = [TPB, TPB, TPB]
-    translateKernel[gridSize, blockSize](d_u,d_v,x,y,z)
+    gridSize = [(dims[0] + tpb - 1) // tpb, (dims[1] + tpb - 1) // tpb, (dims[2] + tpb - 1) // tpb]
+    blockSize = [tpb, tpb, tpb]
+    translateKernel[gridSize, blockSize](d_u, d_v, x, y, z)
     return d_v.copy_to_host()
 
-def thicken(u,weight):
-    #u = voxel model to thicken, assumes SDF
-    #origShape = outer bounds of model
-    #weight = how much we're thickening the object (In voxels)
-    return u - np.ones(u.shape)*weight
+def thicken(u, weight):
+    """Offset a signed distance field by ``weight`` voxels."""
+    return u - np.ones(u.shape) * weight
     
-def shell(uSDF,sT):
-    #u = voxel model to shell, assumes SDF
-    #sT = thickness of the shell (In voxels)
-    return intersection(uSDF,-uSDF-np.ones(uSDF.shape)*sT)
+def shell(uSDF, sT, tpb=8):
+    """Return a shell of ``uSDF`` with thickness ``sT``."""
+    return intersection(uSDF, -uSDF - np.ones(uSDF.shape) * sT, tpb)
 
 @cuda.jit
 def condenseKernel(d_u,d_uCondensed,buffer,minX,minY,minZ):
@@ -149,13 +216,25 @@ def condenseKernel(d_u,d_uCondensed,buffer,minX,minY,minZ):
     if i < m and j < n and k < p:
         d_uCondensed[i,j,k] = d_u[i+minX-buffer,j+minY-buffer,k+minZ-buffer]
     
-def condense(u,buffer):
-    #u = input voxel model
-    #buffer = number of layers of voxels around the boundaries that are left empty
-    #Outputs a new matrix that is fitted to the input voxel model, removing layers
-    #that don't store geometry.
+def condense(u, buffer, tpb=8):
+    """Crop empty space around ``u`` leaving ``buffer`` voxels.
+
+    Parameters
+    ----------
+    u : numpy.ndarray
+        Input voxel grid.
+    buffer : int
+        Number of empty layers to retain around geometry.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Condensed voxel grid.
+    """
     m, n, p = u.shape
-    TPBX, TPBY, TPBZ = TPB, TPB, TPB
+    TPBX, TPBY, TPBZ = tpb, tpb, tpb
     minX, maxX, minY, maxY, minZ, maxZ = -1,-1,-1,-1,-1,-1
     i, j, k = 0, 0, 0
     while minX<0:
@@ -177,14 +256,14 @@ def condense(u,buffer):
     while maxZ<0:
         if np.amin(u[:,:,p-k])<0:   maxZ = p-k
         else:                       k += 1
-    xSize = (np.ceil((2*buffer+maxX-minX)/TPB)*TPB).astype(int)
-    ySize = (np.ceil((2*buffer+maxY-minY)/TPB)*TPB).astype(int)
-    zSize = (np.ceil((2*buffer+maxZ-minZ)/TPB)*TPB).astype(int)
+    xSize = (np.ceil((2 * buffer + maxX - minX) / tpb) * tpb).astype(int)
+    ySize = (np.ceil((2 * buffer + maxY - minY) / tpb) * tpb).astype(int)
+    zSize = (np.ceil((2 * buffer + maxZ - minZ) / tpb) * tpb).astype(int)
     d_u = cuda.to_device(u)
     d_uCondensed = cuda.device_array(shape = [xSize, ySize, zSize], dtype = np.float32)
-    gridDims = (xSize+TPBX-1)//TPBX, (ySize+TPBY-1)//TPBY, (zSize+TPBZ-1)//TPBZ
+    gridDims = (xSize + TPBX - 1) // TPBX, (ySize + TPBY - 1) // TPBY, (zSize + TPBZ - 1) // TPBZ
     blockDims = TPBX, TPBY, TPBZ
-    condenseKernel[gridDims, blockDims](d_u, d_uCondensed,buffer,minX,minY,minZ)
+    condenseKernel[gridDims, blockDims](d_u, d_uCondensed, buffer, minX, minY, minZ)
     return d_uCondensed.copy_to_host()
 
 @cuda.jit
@@ -197,12 +276,24 @@ def heartKernel(d_u, d_x, d_y, d_z,cx,cy,cz):
         z = d_z[k]-cz
         d_u[i,j,k] = (x**2+9*(y**2)/4+z**2-1)**3-(x**2)*(z**3)-9*(y**2)*(z**3)/80
         
-def heart(x,y,z,cx,cy,cz):
-    #x,y,z = coordinate domain that we want the shape to live in, vectors
-    #cx,cy,cz = coordinates of the center of the heart shape.
-    #Outputs a 3D matrix with negative values showing the inside of our shape, 
-    #positive values showing the outside, and 0s to show the surfaces.
-    TPBX, TPBY, TPBZ = TPB, TPB, TPB
+def heart(x, y, z, cx, cy, cz, tpb=8):
+    """Generate a heart shaped SDF over ``x``, ``y`` and ``z`` grids.
+
+    Parameters
+    ----------
+    x, y, z : numpy.ndarray
+        Coordinate vectors.
+    cx, cy, cz : float
+        Center of the heart.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Signed distance field of the heart.
+    """
+    TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]
     p = z.shape[0]
@@ -225,12 +316,24 @@ def eggKernel(d_u, d_x, d_y, d_z,cx,cy,cz):
         z = d_z[k]-cz
         d_u[i,j,k] = 9*x**2+16*(y**2+z**2)+2*x*(y**2+z**2)+(y**2+z**2)-144
         
-def egg(x,y,z,cx,cy,cz):
-    #x,y,z = coordinate domain that we want the shape to live in, vectors
-    #cx,cy,cz = coordinates of the center of the egg shape.
-    #Outputs a 3D matrix with negative values showing the inside of our shape, 
-    #positive values showing the outside, and 0s to show the surfaces.
-    TPBX, TPBY, TPBZ = TPB, TPB, TPB
+def egg(x, y, z, cx, cy, cz, tpb=8):
+    """Generate an egg shaped SDF.
+
+    Parameters
+    ----------
+    x, y, z : numpy.ndarray
+        Coordinate vectors.
+    cx, cy, cz : float
+        Center of the egg.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Signed distance field of the egg.
+    """
+    TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]
     p = z.shape[0]
@@ -253,13 +356,26 @@ def rectKernel(d_u, d_x, d_y, d_z, xl, yl, zl, origin):
         sz = abs(d_z[k]-origin[2]) - zl/2
         d_u[i,j,k]=max(sx,sy,sz)
         
-def rect(x,y,z,xl,yl,zl,origin = [0,0,0]):
-    #x,y,z = coordinate domain that we want the shape to live in, vectors
-    #xl,yl,zl = sidelengths of the rectangular prism.
-    #origin = coordinates for the center of the prism
-    #Outputs a 3D matrix with negative values showing the inside of our shape, 
-    #positive values showing the outside, and 0s to show the surfaces.
-    TPBX, TPBY, TPBZ = TPB, TPB, TPB
+def rect(x, y, z, xl, yl, zl, origin=(0, 0, 0), tpb=8):
+    """Axis-aligned rectangular prism SDF.
+
+    Parameters
+    ----------
+    x, y, z : numpy.ndarray
+        Coordinate vectors.
+    xl, yl, zl : float
+        Side lengths of the prism.
+    origin : tuple, optional
+        Center of the prism.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Signed distance field of the prism.
+    """
+    TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]
     p = z.shape[0]
@@ -280,12 +396,24 @@ def sphereKernel(d_u, d_x, d_y, d_z, rad):
     if i < m and j < n and k < p:
         d_u[i,j, k] = math.sqrt(d_x[i]**2+d_y[j]**2+d_z[k]**2)-rad
         
-def sphere(x,y,z,rad):
-    #x,y,z = x,y,z coordinate domain that we want the shape to live in.
-    #rad = radius of the sphere.
-    #Outputs a 3D matrix with negative values showing the inside of our shape, 
-    #positive values showing the outside, and 0s to show the surfaces.
-    TPBX, TPBY, TPBZ = TPB, TPB, TPB
+def sphere(x, y, z, rad, tpb=8):
+    """Generate a sphere SDF.
+
+    Parameters
+    ----------
+    x, y, z : numpy.ndarray
+        Coordinate vectors.
+    rad : float
+        Radius of the sphere.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Signed distance field of the sphere.
+    """
+    TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]
     p = z.shape[0]
@@ -307,13 +435,26 @@ def cylinderXKernel(d_u, d_x, d_y, d_z, start, stop, rad):
         width = math.sqrt(d_y[j]**2+d_z[k]**2)-rad
         d_u[i,j,k] = max(height,width)
 
-def cylinderX(x,y,z,start,stop,rad):
-    #x,y,z = x,y,z coordinate domain that we want the shape to live in.
-    #start, stop = highest and lowest X coordinates (Order irrelevant).
-    #rad = radius of the cylinder.
-    #Outputs a 3D matrix with negative values showing the inside of our shape, 
-    #positive values showing the outside, and 0s to show the surfaces.
-    TPBX, TPBY, TPBZ = TPB, TPB, TPB
+def cylinderX(x, y, z, start, stop, rad, tpb=8):
+    """Generate a cylinder aligned to the X axis.
+
+    Parameters
+    ----------
+    x, y, z : numpy.ndarray
+        Coordinate vectors.
+    start, stop : float
+        Bounds of the cylinder along X.
+    rad : float
+        Radius of the cylinder.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Signed distance field of the cylinder.
+    """
+    TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]
     p = z.shape[0]
@@ -335,13 +476,26 @@ def cylinderYKernel(d_u, d_x, d_y, d_z, start, stop, rad):
         width = math.sqrt(d_x[i]**2+d_z[k]**2)-rad
         d_u[i,j,k] = max(height,width)
 
-def cylinderY(x,y,z,start,stop,rad):
-    #x,y,z = x,y,z coordinate domain that we want the shape to live in.
-    #start, stop = highest and lowest Y coordinates (Order irrelevant).
-    #rad = radius of the cylinder.
-    #Outputs a 3D matrix with negative values showing the inside of our shape, 
-    #positive values showing the outside, and 0s to show the surfaces.
-    TPBX, TPBY, TPBZ = TPB, TPB, TPB
+def cylinderY(x, y, z, start, stop, rad, tpb=8):
+    """Generate a cylinder aligned to the Y axis.
+
+    Parameters
+    ----------
+    x, y, z : numpy.ndarray
+        Coordinate vectors.
+    start, stop : float
+        Bounds of the cylinder along Y.
+    rad : float
+        Radius of the cylinder.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    numpy.ndarray
+        Signed distance field of the cylinder.
+    """
+    TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]
     p = z.shape[0]

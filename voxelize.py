@@ -3,13 +3,28 @@ import math
 import numpy as np
 from struct import unpack
 from operator import itemgetter
-import userInput as u
-try: TPB = u.TPB 
-except: TPB = 8
 
 # From https://github.com/cpederkoff/stl-to-voxel
 
-def voxelize(inputFilePath, resolution,buffer):
+def voxelize(inputFilePath, resolution, buffer, tpb=8):
+    """Voxelize an STL file and convert to a signed distance field.
+
+    Parameters
+    ----------
+    inputFilePath : str
+        Path to the STL file.
+    resolution : int
+        Output XY resolution in voxels.
+    buffer : int
+        Padding applied around the volume.
+    tpb : int, optional
+        CUDA threads per block.
+
+    Returns
+    -------
+    tuple
+        ``(frep, modelSize)`` where ``frep`` is the voxelized field.
+    """
     mesh = list(read_stl_verticies(inputFilePath))
     modelSize = np.array([0,0,0])
     pointList = list(map(list,sum(mesh,())))
@@ -26,9 +41,9 @@ def voxelize(inputFilePath, resolution,buffer):
         vol[height] = prepixel
         if height%50<1:
             print("On layer "+str(height)+" of "+str(bounding_box[2]))
-    vol = padVoxelArray(vol,buffer)
+    vol = padVoxelArray(vol, buffer)
     print("Voxelize complete!")
-    return toFRep(vol), modelSize
+    return toFRep(vol, tpb), modelSize
 
 def linesToVoxels(lineList, pixels):
     for x in range(len(pixels)):
@@ -308,11 +323,12 @@ def toFRepKernel(d_u,d_v):
     else:
         d_v[i,j,k]=0.01
 
-def toFRep(u):
+def toFRep(u, tpb=8):
+    """Convert boolean voxels to a simple FRep field."""
     d_u = cuda.to_device(u)
     dims = u.shape
-    d_v = cuda.device_array(dims,dtype=np.float32)
-    gridSize = [(dims[0]+TPB-1)//TPB, (dims[1]+TPB-1)//TPB,(dims[2]+TPB-1)//TPB]
-    blockSize = [TPB, TPB, TPB]
-    toFRepKernel[gridSize, blockSize](d_u,d_v)
+    d_v = cuda.device_array(dims, dtype=np.float32)
+    gridSize = [(dims[0] + tpb - 1) // tpb, (dims[1] + tpb - 1) // tpb, (dims[2] + tpb - 1) // tpb]
+    blockSize = [tpb, tpb, tpb]
+    toFRepKernel[gridSize, blockSize](d_u, d_v)
     return d_v.copy_to_host()
