@@ -2,7 +2,7 @@
 
 This module provides simple heuristics for transforming a mesh to
 reduce overhangs by converting them into gothic-like arches.
-The implementation is adapted from the experimental ``scripts/3.py`` file.
+The implementation is adapted from an earlier prototype script.
 """
 
 from __future__ import annotations
