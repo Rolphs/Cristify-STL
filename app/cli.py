@@ -7,6 +7,8 @@ from typing import Sequence
 
 from app.core.io import load_mesh, save_mesh
 from app.core.cristify import cristify_mesh
+from app.core.mesh_utils import repair_mesh, make_watertight
+from app.core import analyze_mesh
 from app.voronizer import PipelineConfig, run_pipeline
 
 
@@ -28,6 +30,14 @@ def build_parser() -> argparse.ArgumentParser:
     voro.add_argument("--tpb", type=int, default=8)
     voro.add_argument("--model", action="store_true", default=False)
     voro.add_argument("--support", action="store_true", default=False)
+
+    repair = sub.add_parser("repair", help="Repair a mesh")
+    repair.add_argument("--input", required=True, help="Path to input mesh file")
+    repair.add_argument("--output", required=True, help="Destination path for repaired mesh")
+    repair.add_argument("--watertight", action="store_true", default=False, help="Fill holes to make mesh watertight")
+
+    analyze = sub.add_parser("analyze", help="Analyze a mesh")
+    analyze.add_argument("--input", required=True, help="Path to input mesh file")
 
     return parser
 
@@ -53,6 +63,17 @@ def main(args: Sequence[str] | None = None) -> int:
             SUPPORT=opts.support,
         )
         run_pipeline(config)
+    elif opts.command == "repair":
+        mesh = load_mesh(opts.input)
+        if opts.watertight:
+            result = make_watertight(mesh)
+        else:
+            result = repair_mesh(mesh)
+        save_mesh(result, opts.output)
+    elif opts.command == "analyze":
+        mesh = load_mesh(opts.input)
+        analysis = analyze_mesh(mesh)
+        print(analysis)
     else:
         raise ValueError("Unknown command")
     return 0
