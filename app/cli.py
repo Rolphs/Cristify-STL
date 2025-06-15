@@ -9,7 +9,6 @@ from app.core.io import load_mesh, save_mesh
 from app.core.cristify import cristify_mesh
 from app.core.mesh_utils import repair_mesh, make_watertight
 from app.core import analyze_mesh
-from app.voronizer import PipelineConfig, run_pipeline
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -54,6 +53,8 @@ def main(args: Sequence[str] | None = None) -> int:
         result = cristify_mesh(mesh, amount=opts.amount, axis=opts.axis, floor=opts.floor)
         save_mesh(result, opts.output)
     elif opts.command == "voronize":
+        from app.voronizer import PipelineConfig, run_pipeline  # lazy import
+
         config = PipelineConfig(
             FILE_NAME=opts.file_name,
             PRIMITIVE_TYPE=opts.primitive_type,
