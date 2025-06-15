@@ -19,6 +19,7 @@ import dearpygui.dearpygui as dpg
 from app.core.cristify import cristify_mesh
 from app.core.io import load_mesh, save_mesh
 from app.gui.viewer import MeshViewer
+from app.voronizer import PipelineConfig, run_pipeline
 
 _current_mesh = None
 _viewer: MeshViewer
@@ -62,6 +63,16 @@ def _apply_cristify() -> None:  # pragma: no cover - UI
     _viewer.set_mesh(_current_mesh)
 
 
+def _open_voronize_dialog() -> None:
+    dpg.show_item("voro_dialog")
+
+
+def _run_voronize(sender, app_data, user_data) -> None:  # pragma: no cover - UI
+    file_name = dpg.get_value("voro_file")
+    config = PipelineConfig(FILE_NAME=file_name, MODEL=True)
+    run_pipeline(config)
+
+
 def main() -> None:  # pragma: no cover - manual run
     """Launch the GUI application."""
 
@@ -70,9 +81,10 @@ def main() -> None:  # pragma: no cover - manual run
     global _viewer
     _viewer = MeshViewer()
 
-    with dpg.window(label="Cristify STL", width=200, height=150):
+    with dpg.window(label="Cristify STL", width=200, height=180):
         dpg.add_button(label="Load STL", callback=_open_load_dialog)
         dpg.add_button(label="Apply Cristify", callback=_apply_cristify)
+        dpg.add_button(label="Voronize", callback=_open_voronize_dialog)
         dpg.add_button(label="Save STL", callback=_open_save_dialog)
 
     with dpg.file_dialog(
@@ -91,6 +103,10 @@ def main() -> None:  # pragma: no cover - manual run
         default_filename="cristified.stl",
     ):
         dpg.add_file_extension(".stl", color=(0, 255, 0, 255))
+
+    with dpg.window(label="Voronize", modal=True, show=False, tag="voro_dialog"):
+        dpg.add_input_text(label="STL file name", tag="voro_file")
+        dpg.add_button(label="Run", callback=_run_voronize)
 
     dpg.create_viewport(title="Cristify STL", width=800, height=600)
     dpg.setup_dearpygui()

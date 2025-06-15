@@ -1,11 +1,8 @@
 import matplotlib.pyplot as plt
-import os #Just used to set up file directory
+import os  # Just used to set up file directory
 import numpy as np
 from numba import cuda
 from PIL import Image
-import userInput as u
-try: TPB = u.TPB 
-except: TPB = 8
 
 def slicePlot(u,sliceLocation,titlestring='Plot',save=False,axis = "x"):
     #Plots a slice of matrix u cut at sliceLocation, with the negative values (voxels inside the object) set to teal.
@@ -71,12 +68,12 @@ def setColorKernel(d_u,d_v,color,background):
         else:
             d_v[i,j,k] = background
     
-def setColor(u,color,background):
+def setColor(u, color, background, tpb=8):
     #u = 3D voxel representation of model
     #color = [R,G,B] value desired for that model
     #background = [R,G,B] value desired for voxels outside of the model
     x,y,z = u.shape
-    TPBX, TPBY, TPBZ = TPB, TPB, TPB
+    TPBX = TPBY = TPBZ = tpb
     d_u = cuda.to_device(u)
     d_v = cuda.to_device(np.ones([x,y,z],dtype=np.uint8))
     image = np.ones([x,y,z,3],dtype=np.uint8)

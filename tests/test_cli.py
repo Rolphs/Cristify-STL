@@ -21,6 +21,7 @@ def test_cli_cristify(tmp_path):
             sys.executable,
             "-m",
             "app.cli",
+            "cristify",
             "--input",
             str(input_path),
             "--output",
@@ -50,6 +51,7 @@ def test_cli_axis_option(tmp_path):
             sys.executable,
             "-m",
             "app.cli",
+            "cristify",
             "--input",
             str(input_path),
             "--output",
@@ -76,6 +78,7 @@ def test_cli_invalid_axis(tmp_path):
     with pytest.raises(SystemExit):
         parse_args(
             [
+                "cristify",
                 "--input",
                 str(input_path),
                 "--output",
