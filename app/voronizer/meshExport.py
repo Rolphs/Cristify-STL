@@ -63,4 +63,3 @@ def tesselate(fvals, xvals, yvals, zvals, scale):
         verts2[i][1] = (yvals[ndex[1]]+frac[1])*scale[1]
         verts2[i][2] = (zvals[ndex[2]]+frac[2])*scale[2]
     return tuple([verts2, faces])
-    
