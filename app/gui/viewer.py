@@ -96,3 +96,8 @@ class MeshViewer:
                 color=(200, 200, 200, 255),
                 fill=(100, 150, 230, 100),
             )
+
+        return
+
+
+__all__ = ["MeshViewer"]

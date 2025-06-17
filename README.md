@@ -2,7 +2,8 @@
 
 This repository provides utilities for experimenting with STL mesh processing.  The
 primary functionality lives inside the `app` package which exposes a simple
-command–line interface and an optional GUI built with DearPyGui.
+command–line interface and an optional GUI built with DearPyGui. Additional
+developer notes can be found in `docs/README.md`.
 
 ## Project Layout
 
@@ -10,12 +11,11 @@ command–line interface and an optional GUI built with DearPyGui.
 app/        # package with CLI, core utilities, GUI and voronizer modules
 assets/     # bundled resource files
 data/       # small data assets
-scripts/    # standalone demo and optimization scripts
+examples/   # simple usage examples
 tests/      # pytest suite
 ```
 
-The files in `scripts/` are experimental helpers and examples.  They are not
-required for running the library or tests but are kept for reference.
+The examples in `examples/` showcase typical usage and are optional. They are not required for running the library or tests but are kept for reference.
 
 ## Mesh Operations
 
