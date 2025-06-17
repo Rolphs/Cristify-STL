@@ -2,7 +2,8 @@
 
 This repository provides utilities for experimenting with STL mesh processing.  The
 primary functionality lives inside the `app` package which exposes a simple
-command–line interface and an optional GUI built with DearPyGui.
+command–line interface and an optional GUI built with DearPyGui. Additional
+developer notes can be found in `docs/README.md`.
 
 ## Project Layout
 
