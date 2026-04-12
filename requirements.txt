@@ -5,3 +5,4 @@ numpy==1.26.4
 scipy==1.15.3
 dearpygui==1.11.1
 networkx==3.5
+numba
