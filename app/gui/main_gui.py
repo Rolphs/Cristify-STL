@@ -68,7 +68,11 @@ def _apply_cristify() -> None:  # pragma: no cover - UI
     global _current_mesh
     if _current_mesh is None:
         return
-    _current_mesh = cristify_mesh(_current_mesh)
+    _current_mesh = cristify_mesh(
+        _current_mesh,
+        amount=dpg.get_value("cristify_amount"),
+        axis=dpg.get_value("cristify_axis"),
+    )
     _viewer.set_mesh(_current_mesh)
 
 
@@ -77,8 +81,13 @@ def _open_voronize_dialog() -> None:
 
 
 def _run_voronize(sender, app_data, user_data) -> None:  # pragma: no cover - UI
-    file_name = dpg.get_value("voro_file")
-    config = PipelineConfig(FILE_NAME=file_name, MODEL=True)
+    config = PipelineConfig(
+        FILE_NAME=dpg.get_value("voro_file"),
+        MODEL=True,
+        RESOLUTION=dpg.get_value("voro_resolution"),
+        OUTPUT_DIR=dpg.get_value("voro_output_dir"),
+        EXPORT_MESH=dpg.get_value("voro_export"),
+    )
     run_pipeline(config)
 
 
@@ -109,14 +118,44 @@ def _apply_transform() -> None:  # pragma: no cover - UI
         return
     op = dpg.get_value("transform_combo")
     if op == "Gaudify":
-        _current_mesh = gaudify_mesh(_current_mesh)
+        _current_mesh = gaudify_mesh(
+            _current_mesh,
+            max_overhang_angle=dpg.get_value("gaudify_angle"),
+            max_iterations=dpg.get_value("gaudify_iterations"),
+        )
     elif op == "Simplify":
-        _current_mesh = simplify_mesh(_current_mesh, target_reduction=0.5)
+        _current_mesh = simplify_mesh(
+            _current_mesh, target_reduction=dpg.get_value("simplify_reduction")
+        )
     elif op == "Wrap":
-        _current_mesh = wrap_mesh(_current_mesh)
+        _current_mesh = wrap_mesh(
+            _current_mesh, wrap_thickness=dpg.get_value("wrap_thickness")
+        )
     elif op == "Texturize":
-        _current_mesh = make_organic_with_gravity(_current_mesh)
+        _current_mesh = make_organic_with_gravity(
+            _current_mesh,
+            noise_strength=dpg.get_value("texturize_noise"),
+            smooth_iterations=dpg.get_value("texturize_smooth"),
+            g=dpg.get_value("texturize_gravity"),
+        )
     _viewer.set_mesh(_current_mesh)
+
+
+_TRANSFORM_GROUPS = {
+    "Gaudify": "gaudify_params",
+    "Simplify": "simplify_params",
+    "Wrap": "wrap_params",
+    "Texturize": "texturize_params",
+}
+
+
+def _on_transform_changed(sender, app_data) -> None:  # pragma: no cover - UI
+    """Show only the parameter group of the selected transform."""
+    for op, group in _TRANSFORM_GROUPS.items():
+        if op == app_data:
+            dpg.show_item(group)
+        else:
+            dpg.hide_item(group)
 
 
 def main() -> None:  # pragma: no cover - manual run
@@ -127,19 +166,63 @@ def main() -> None:  # pragma: no cover - manual run
     global _viewer
     _viewer = MeshViewer()
 
-    with dpg.window(label="Cristify STL", width=220, height=320):
+    with dpg.window(label="Cristify STL", width=300, height=560):
         dpg.add_button(label="Load STL", callback=_open_load_dialog)
+        dpg.add_separator()
+        dpg.add_slider_float(
+            label="Amount", tag="cristify_amount",
+            default_value=1.0, min_value=0.0, max_value=2.0,
+        )
+        dpg.add_combo(
+            ["x", "y", "z"], label="Axis", tag="cristify_axis", default_value="z"
+        )
         dpg.add_button(label="Apply Cristify", callback=_apply_cristify)
+        dpg.add_separator()
         dpg.add_button(label="Voronize", callback=_open_voronize_dialog)
         dpg.add_button(label="Repair", callback=_apply_repair)
         dpg.add_checkbox(label="Watertight", tag="repair_watertight")
         dpg.add_button(label="Analyze", callback=_analyze_current)
+        dpg.add_separator()
         dpg.add_combo(
             ["Gaudify", "Simplify", "Wrap", "Texturize"],
             tag="transform_combo",
             default_value="Gaudify",
+            callback=_on_transform_changed,
         )
+        with dpg.group(tag="gaudify_params"):
+            dpg.add_slider_float(
+                label="Max overhang angle", tag="gaudify_angle",
+                default_value=45.0, min_value=10.0, max_value=80.0,
+            )
+            dpg.add_slider_int(
+                label="Max iterations", tag="gaudify_iterations",
+                default_value=10, min_value=1, max_value=50,
+            )
+        with dpg.group(tag="simplify_params", show=False):
+            dpg.add_slider_float(
+                label="Reduction", tag="simplify_reduction",
+                default_value=0.5, min_value=0.05, max_value=0.95,
+            )
+        with dpg.group(tag="wrap_params", show=False):
+            dpg.add_slider_float(
+                label="Thickness", tag="wrap_thickness",
+                default_value=0.1, min_value=0.01, max_value=1.0,
+            )
+        with dpg.group(tag="texturize_params", show=False):
+            dpg.add_slider_float(
+                label="Noise strength", tag="texturize_noise",
+                default_value=0.01, min_value=0.0, max_value=0.1,
+            )
+            dpg.add_slider_int(
+                label="Smooth iterations", tag="texturize_smooth",
+                default_value=200, min_value=0, max_value=500,
+            )
+            dpg.add_input_float(
+                label="Gravity", tag="texturize_gravity",
+                default_value=1e-3, step=1e-3, format="%.4f",
+            )
         dpg.add_button(label="Apply Transform", callback=_apply_transform)
+        dpg.add_separator()
         dpg.add_button(label="Save STL", callback=_open_save_dialog)
 
     with dpg.file_dialog(
@@ -160,7 +243,16 @@ def main() -> None:  # pragma: no cover - manual run
         dpg.add_file_extension(".stl", color=(0, 255, 0, 255))
 
     with dpg.window(label="Voronize", modal=True, show=False, tag="voro_dialog"):
-        dpg.add_input_text(label="STL file name", tag="voro_file")
+        dpg.add_input_text(label="STL file path", tag="voro_file")
+        dpg.add_input_int(
+            label="Resolution", tag="voro_resolution", default_value=300,
+            min_value=16, max_value=600, min_clamped=True, max_clamped=True,
+        )
+        dpg.add_input_text(
+            label="Output dir", tag="voro_output_dir",
+            hint="default: ./Output",
+        )
+        dpg.add_checkbox(label="Export .ply", tag="voro_export", default_value=True)
         dpg.add_button(label="Run", callback=_run_voronize)
 
     with dpg.window(label="Analysis", modal=True, show=False, tag="analysis_dialog"):
