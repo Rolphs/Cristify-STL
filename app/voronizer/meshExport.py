@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 # Create 3d contourplot (and surface tesselation) based on 3d array fvals 
 # sampled on grid with coords determined by xvals, yvals, and zvals
 # Note that tesselator requires inputs corresponding to grid spacings
-def generateMesh(fvals, scale, modelName='', show = False):
+def generateMesh(fvals, scale, modelName='', show = False, outputDir=None):
     i,j,k = fvals.shape
     xvals = np.linspace(0,i-1, i, endpoint=True)
     yvals = np.linspace(0,j-1, j, endpoint=True) 
@@ -15,8 +15,8 @@ def generateMesh(fvals, scale, modelName='', show = False):
     verts, faces = tesselate(fvals, xvals, yvals, zvals, scale)    
     print("Done Tesselate")
     if modelName !='':
-        exportPLY(modelName, verts, faces)	
-        print('Object exported to Output folder as '+modelName+'.ply')
+        filepath = exportPLY(modelName, verts, faces, outputDir)
+        print('Object exported as '+filepath)
     if show:
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(111, projection='3d')
@@ -29,8 +29,11 @@ def generateMesh(fvals, scale, modelName='', show = False):
         plt.tight_layout()
         plt.show()    
     
-def exportPLY(modelName, verts2, faces):
-    filepath = os.path.join(os.path.dirname(__file__),'Output',modelName+'.ply')
+def exportPLY(modelName, verts2, faces, outputDir=None):
+    if outputDir is None:
+        outputDir = os.path.join(os.getcwd(), 'Output')
+    os.makedirs(outputDir, exist_ok=True)
+    filepath = os.path.join(outputDir, modelName+'.ply')
     plyf = open(filepath, 'w')
     plyf.write( "ply\n")
     plyf.write( "format ascii 1.0\n")
@@ -45,8 +48,9 @@ def exportPLY(modelName, verts2, faces):
     for i in range(0,verts2.size//3):
         plyf.write(str(verts2[i][0])+' '+str(verts2[i][1])+' '+str(verts2[i][2])+'\n')
     for i in range(0,faces.size//3):
-        plyf.write('3 '+str(faces[i][0])+' '+str(faces[i][1])+' '+str(faces[i][2])+'\n') 
+        plyf.write('3 '+str(faces[i][0])+' '+str(faces[i][1])+' '+str(faces[i][2])+'\n')
     plyf.close()
+    return filepath
     
 # Compute a tesselation of the zero isosurface
 def tesselate(fvals, xvals, yvals, zvals, scale):

@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import os  # Just used to set up file directory
+import os
 import numpy as np
 from numba import cuda
 from PIL import Image
@@ -7,7 +7,14 @@ from PIL import Image
 from . import cpu_ops
 from .backend import cuda_available
 
-def slicePlot(u,sliceLocation,titlestring='Plot',save=False,axis = "x"):
+
+def _output_dir(outputDir):
+    if outputDir is None:
+        outputDir = os.path.join(os.getcwd(), 'Output')
+    os.makedirs(outputDir, exist_ok=True)
+    return outputDir
+
+def slicePlot(u,sliceLocation,titlestring='Plot',save=False,axis = "x",outputDir=None):
     #Plots a slice of matrix u cut at sliceLocation, with the negative values (voxels inside the object) set to teal.
     fig, ax = plt.subplots()
     if axis.upper()=="X":
@@ -20,9 +27,9 @@ def slicePlot(u,sliceLocation,titlestring='Plot',save=False,axis = "x"):
     ax.set_aspect(1.0)
     plt.show()
     if save:
-        fig.savefig(os.path.join(os.path.dirname(__file__),'Output',titlestring+'.png'))
-        
-def contourPlot(u,sliceLocation,titlestring='Plot',save=False,axis = "x"):
+        fig.savefig(os.path.join(_output_dir(outputDir),titlestring+'.png'))
+
+def contourPlot(u,sliceLocation,titlestring='Plot',save=False,axis = "x",outputDir=None):
     #Plots a slice of matrix u cut at sliceLocation
     fig, ax = plt.subplots()
     if axis.upper()=="X":
@@ -36,9 +43,9 @@ def contourPlot(u,sliceLocation,titlestring='Plot',save=False,axis = "x"):
     ax.set_aspect(1.0)
     plt.show()
     if save:
-        fig.savefig(os.path.join(os.path.dirname(__file__),'Output',titlestring+'.png'))
+        fig.savefig(os.path.join(_output_dir(outputDir),titlestring+'.png'))
 
-def generateImageStack(model,modelColor,support,supportColor,sliceLocations=[],background=[0,0,0],name="Model"):
+def generateImageStack(model,modelColor,support,supportColor,sliceLocations=[],background=[0,0,0],name="Model",outputDir=None):
     #model = 3D voxel representation of model
     #modelColor = [R,G,B] color for model
     #support = 3D voxel representation of support
@@ -48,8 +55,8 @@ def generateImageStack(model,modelColor,support,supportColor,sliceLocations=[],b
     #name = name of the model, defaults to Model
     x,y,z = support.shape
     print("Generating image stack...")
-    try: os.mkdir(os.path.join(os.path.dirname(__file__),'Output',name+" image stack"))
-    except: pass
+    stackDir = os.path.join(_output_dir(outputDir),name+" image stack")
+    os.makedirs(stackDir, exist_ok=True)
     imageModel = setColor(model,modelColor,background)
     imageSupport = setColor(support,supportColor,background)
     completePicture = imageSupport+imageModel
@@ -58,7 +65,7 @@ def generateImageStack(model,modelColor,support,supportColor,sliceLocations=[],b
     for val in sliceLocations:
         picture = completePicture[val,:,:,:]
         img = Image.fromarray(picture, 'RGB')
-        img.save(os.path.join(os.path.dirname(__file__),'Output',name+" image stack",str(val)+name+'.png'))
+        img.save(os.path.join(stackDir,str(val)+name+'.png'))
     print("Image Stack Complete!")
     
 @cuda.jit

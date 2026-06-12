@@ -67,8 +67,9 @@ for full details.
 # Cristify an STL file
 python -m app.cli cristify --input INPUT.stl --output OUTPUT.stl
 
-# Voronize a model
-python -m app.cli voronize --file-name model.stl --model
+# Voronize a model (use --export to write the resulting .ply,
+# --output-dir to choose where generated files go; default ./Output)
+python -m app.cli voronize --file-name path/to/model.stl --model --export
 # Voronize uses CUDA when an NVIDIA GPU is available and otherwise falls
 # back to a NumPy/SciPy implementation (e.g. on Apple Silicon). Set
 # CRISTIFY_FORCE_CPU=1 to force the CPU backend.

@@ -26,6 +26,9 @@ class PipelineConfig:
     SUPPORT_CELL: float = 0.7
     FILE_NAME: str = ""
     PRIMITIVE_TYPE: str = ""
+    OUTPUT_DIR: str = ""
+    EXPORT_MESH: bool = False
+    EXPORT_NAME: str = ""
 
 
 def run_pipeline(config: PipelineConfig) -> None:
