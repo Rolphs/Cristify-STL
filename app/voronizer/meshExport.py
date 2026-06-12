@@ -50,8 +50,7 @@ def exportPLY(modelName, verts2, faces):
     
 # Compute a tesselation of the zero isosurface
 def tesselate(fvals, xvals, yvals, zvals, scale):
-    #verts,faces,normals,values = measure.marching_cubes_lewiner(fvals,0,spacing=(1.0, 1.0, 1.0),allow_degenerate=False)
-    verts, faces, normals, values = measure.marching_cubes_lewiner(fvals, level = 0,spacing=(1.0, 1.0, 1.0), allow_degenerate = False)    
+    verts, faces, normals, values = measure.marching_cubes(fvals, level = 0,spacing=(1.0, 1.0, 1.0), allow_degenerate = False, method = "lewiner")
     ndex = [0,0,0]
     frac = [0,0,0]
     verts2 = np.ndarray(shape=(verts.size//3,3), dtype=float)

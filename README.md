@@ -69,6 +69,9 @@ python -m app.cli cristify --input INPUT.stl --output OUTPUT.stl
 
 # Voronize a model
 python -m app.cli voronize --file-name model.stl --model
+# Voronize uses CUDA when an NVIDIA GPU is available and otherwise falls
+# back to a NumPy/SciPy implementation (e.g. on Apple Silicon). Set
+# CRISTIFY_FORCE_CPU=1 to force the CPU backend.
 
 # Repair a mesh
 python -m app.cli repair --input INPUT.stl --output fixed.stl

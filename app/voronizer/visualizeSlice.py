@@ -4,6 +4,9 @@ import numpy as np
 from numba import cuda
 from PIL import Image
 
+from . import cpu_ops
+from .backend import cuda_available
+
 def slicePlot(u,sliceLocation,titlestring='Plot',save=False,axis = "x"):
     #Plots a slice of matrix u cut at sliceLocation, with the negative values (voxels inside the object) set to teal.
     fig, ax = plt.subplots()
@@ -72,6 +75,8 @@ def setColor(u, color, background, tpb=8):
     #u = 3D voxel representation of model
     #color = [R,G,B] value desired for that model
     #background = [R,G,B] value desired for voxels outside of the model
+    if not cuda_available():
+        return cpu_ops.setColor(u, color, background)
     x,y,z = u.shape
     TPBX = TPBY = TPBZ = tpb
     d_u = cuda.to_device(u)
