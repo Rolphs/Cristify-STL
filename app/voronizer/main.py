@@ -13,7 +13,7 @@ Typical usage::
     run(PipelineConfig(FILE_NAME="model.stl"))
 """
 
-import os  # Just used to set up file directory
+import os
 import time
 import numpy as np
 from . import Frep as f
@@ -25,6 +25,32 @@ from .analysis import findVol
 from .visualizeSlice import slicePlot, contourPlot, generateImageStack
 from .voxelize import voxelize
 from .__init__ import PipelineConfig
+
+
+def resolve_input(file_name: str) -> str:
+    """Resolve ``file_name`` to an existing STL path.
+
+    Accepts absolute paths or paths relative to the current working
+    directory.  Falls back to the legacy ``Input/`` folder next to this
+    module for backwards compatibility.
+    """
+    if os.path.isfile(file_name):
+        return file_name
+    legacy = os.path.join(os.path.dirname(__file__), 'Input', file_name)
+    if os.path.isfile(legacy):
+        return legacy
+    raise FileNotFoundError("Input file not found: " + file_name)
+
+
+def resolve_output_dir(config: PipelineConfig) -> str:
+    """Return the output directory for ``config``, creating it if needed.
+
+    Defaults to ``Output/`` in the current working directory when
+    ``config.OUTPUT_DIR`` is empty.
+    """
+    out = config.OUTPUT_DIR or os.path.join(os.getcwd(), 'Output')
+    os.makedirs(out, exist_ok=True)
+    return out
 
 
 def main(config: PipelineConfig) -> None:
@@ -43,10 +69,7 @@ def main(config: PipelineConfig) -> None:
         output files and displaying plots.
     """
     start = time.time()
-    try:
-        os.mkdir(os.path.join(os.path.dirname(__file__), 'Output'))
-    except Exception:
-        pass
+    outputDir = resolve_output_dir(config)
     FILE_NAME = config.FILE_NAME
     PRIMITIVE_TYPE = config.PRIMITIVE_TYPE
     modelImport = False
@@ -55,11 +78,12 @@ def main(config: PipelineConfig) -> None:
         print("You need at least the model or the support structure.")
         return
     if FILE_NAME != "":
-        shortName = FILE_NAME[:-4]
+        shortName = os.path.splitext(os.path.basename(FILE_NAME))[0]
         modelImport = True
-        try:    filepath = os.path.join(os.path.dirname(__file__), 'Input',FILE_NAME)
-        except: 
-            print("Input file not found.") 
+        try:
+            filepath = resolve_input(FILE_NAME)
+        except FileNotFoundError as exc:
+            print(exc)
             return
         res = config.RESOLUTION - config.BUFFER * 2
         origShape, objectBox = voxelize(filepath, res, config.BUFFER, config.TPB)
@@ -147,46 +171,42 @@ def main(config: PipelineConfig) -> None:
     if config.SUPPORT and config.MODEL:
         complete = f.union(objectVoronoi, supportVoronoi, config.TPB)
         if config.IMG_STACK:
-            generateImageStack(objectVoronoi,[255,0,0],supportVoronoi,[0,0,255],name = shortName)
+            generateImageStack(objectVoronoi,[255,0,0],supportVoronoi,[0,0,255],name = shortName,outputDir=outputDir)
     elif config.SUPPORT:
         complete = supportVoronoi
         if config.IMG_STACK:
-            generateImageStack(supportVoronoi,[0,0,0],supportVoronoi,[0,0,255],name = shortName)
+            generateImageStack(supportVoronoi,[0,0,0],supportVoronoi,[0,0,255],name = shortName,outputDir=outputDir)
     elif config.MODEL:
         complete = objectVoronoi
         if config.IMG_STACK:
-            generateImageStack(objectVoronoi,[255,0,0],objectVoronoi,[0,0,0],name = FILE_NAME[:-4])
+            generateImageStack(objectVoronoi,[255,0,0],objectVoronoi,[0,0,0],name = shortName,outputDir=outputDir)
     slicePlot(complete, origShape.shape[0]//2, titlestring='Full Model', axis = "X")
     slicePlot(complete, origShape.shape[1]//2, titlestring='Full Model', axis = "Y")
     slicePlot(complete, origShape.shape[2]//2, titlestring='Full Model', axis = "Z")
     
     print("That took "+str(round(time.time()-start,2))+" seconds.")
-    UIP = input("Would you like the .ply for this iteration? [Y/N]")
-    if UIP == "Y" or UIP == "y":
-        if modelImport:
-            fn = shortName
-        else:
-            fn = input("What would you like the file to be called?")
+    if config.EXPORT_MESH:
+        fn = config.EXPORT_NAME or shortName
         print("Generating Model...")
         if config.SEPARATE_SUPPORTS and config.SUPPORT and config.MODEL:
             if config.SMOOTH:
                 objectVoronoi = f.smooth(objectVoronoi, tpb=config.TPB)
-            generateMesh(objectVoronoi,scale,modelName=fn)
+            generateMesh(objectVoronoi,scale,modelName=fn,outputDir=outputDir)
             print("Generating Supports...")
             if config.SMOOTH:
                 supportVoronoi = f.smooth(supportVoronoi, tpb=config.TPB)
-            generateMesh(supportVoronoi,scale,modelName=fn+"Support")
+            generateMesh(supportVoronoi,scale,modelName=fn+"Support",outputDir=outputDir)
         else:
             if config.SMOOTH:
                 complete = f.smooth(complete, tpb=config.TPB)
-            generateMesh(complete,scale,modelName=fn)
+            generateMesh(complete,scale,modelName=fn,outputDir=outputDir)
         if config.INVERSE and config.MODEL:
             print("Generating Inverse...")
             inv = f.subtract(objectVoronoi, origShape, config.TPB)
             if config.SMOOTH:
                 inv = f.smooth(inv, tpb=config.TPB)
             print("Generating Mesh...")
-            generateMesh(inv,scale,modelName=fn+"Inv")
+            generateMesh(inv,scale,modelName=fn+"Inv",outputDir=outputDir)
 
 if __name__ == '__main__':
     main(PipelineConfig())

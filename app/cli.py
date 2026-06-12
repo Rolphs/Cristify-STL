@@ -28,12 +28,15 @@ def build_parser() -> argparse.ArgumentParser:
     cristify.add_argument("--floor", type=float, default=None, help="Optional minimum coordinate after projection")
 
     voro = sub.add_parser("voronize", help="Run Voronizer pipeline")
-    voro.add_argument("--file-name", default="", help="STL file name inside Input folder")
+    voro.add_argument("--file-name", default="", help="Path to the input STL file")
     voro.add_argument("--primitive-type", default="", help="Primitive shape type")
     voro.add_argument("--resolution", type=int, default=300)
     voro.add_argument("--tpb", type=int, default=8)
     voro.add_argument("--model", action="store_true", default=False)
     voro.add_argument("--support", action="store_true", default=False)
+    voro.add_argument("--output-dir", default="", help="Directory for generated files (default: ./Output)")
+    voro.add_argument("--export", action="store_true", default=False, help="Export the resulting mesh as .ply")
+    voro.add_argument("--export-name", default="", help="Base name for the exported mesh")
 
     repair = sub.add_parser("repair", help="Repair a mesh")
     repair.add_argument("--input", required=True, help="Path to input mesh file")
@@ -83,6 +86,9 @@ def main(args: Sequence[str] | None = None) -> int:
             TPB=opts.tpb,
             MODEL=opts.model,
             SUPPORT=opts.support,
+            OUTPUT_DIR=opts.output_dir,
+            EXPORT_MESH=opts.export,
+            EXPORT_NAME=opts.export_name,
         )
         run_pipeline(config)
     elif opts.command == "repair":
