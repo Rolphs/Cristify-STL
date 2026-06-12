@@ -50,8 +50,8 @@ def repair_mesh(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     o3_mesh.remove_unreferenced_vertices()
 
     cleaned = _from_open3d(o3_mesh)
-    cleaned.remove_duplicate_faces()
-    cleaned.remove_degenerate_faces()
+    cleaned.update_faces(cleaned.unique_faces())
+    cleaned.update_faces(cleaned.nondegenerate_faces())
     cleaned.remove_unreferenced_vertices()
 
     return cleaned
@@ -75,7 +75,7 @@ def repair_until_watertight(
     start = time.time()
     while time.time() - start < max_time_seconds:
         working.fill_holes()
-        working.remove_degenerate_faces()
+        working.update_faces(working.nondegenerate_faces())
         working.update_faces(working.unique_faces())
         working.remove_infinite_values()
         working.remove_unreferenced_vertices()
