@@ -2,6 +2,9 @@ from numba import cuda
 import math
 import numpy as np
 
+from . import cpu_ops
+from .backend import cuda_available
+
 @cuda.jit(device = True)
 def norm(i,j,k,m,n,p,order):
     return (abs((i-m)**order)+abs((j-n)**order)+abs((k-p)**order))**(1/order)
@@ -73,6 +76,8 @@ def jumpFlood(u, norm, tpb=8):
     numpy.ndarray
         Jump flood result ``(x, y, z, dist)`` for each cell.
     """
+    if not cuda_available():
+        return cpu_ops.jumpFlood(u, norm)
     dims = u.shape
     gridSize = [(dims[0] + tpb - 1) // tpb, (dims[1] + tpb - 1) // tpb, (dims[2] + tpb - 1) // tpb]
     blockSize = [tpb, tpb, tpb]
@@ -131,6 +136,8 @@ def SDF3D(u, norm=2.0, tpb=8):
     numpy.ndarray
         Signed distance field of ``u``.
     """
+    if not cuda_available():
+        return cpu_ops.SDF3D(u, norm)
     dims = u.shape
     gridSize = [(dims[0] + tpb - 1) // tpb, (dims[1] + tpb - 1) // tpb, (dims[2] + tpb - 1) // tpb]
     blockSize = [tpb, tpb, tpb]
@@ -164,6 +171,8 @@ def simplifyKernel(d_u,d_v):
 
 def simplify(u, tpb=8):
     """Remove thin layers from ``u`` for faster distance computations."""
+    if not cuda_available():
+        return cpu_ops.simplify(u)
     d_u = cuda.to_device(u)
     dims = u.shape
     d_v = cuda.device_array(dims, dtype=np.float32)
@@ -194,6 +203,8 @@ def xHeight(u, tpb=8):
     numpy.ndarray
         Field where each voxel stores the height of material above it.
     """
+    if not cuda_available():
+        return cpu_ops.xHeight(u)
     m, n, p = u.shape
     TPBY, TPBZ = tpb, tpb
     gridDims = (n + TPBY - 1) // TPBY, (p + TPBZ - 1) // TPBZ

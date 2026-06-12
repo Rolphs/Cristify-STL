@@ -2,6 +2,9 @@ from numba import cuda
 import numpy as np
 import math
 
+from . import cpu_ops
+from .backend import cuda_available
+
 
 @cuda.jit
 def smoothKernel(d_u, d_v, buffer):
@@ -39,6 +42,8 @@ def smooth(u, iteration=1, buffer=0, tpb=8):
     numpy.ndarray
         Smoothed voxel grid.
     """
+    if not cuda_available():
+        return cpu_ops.smooth(u, iteration, buffer)
     TPBX, TPBY, TPBZ = tpb, tpb, tpb
     dims = u.shape
     d_u = cuda.to_device(u)
@@ -73,6 +78,8 @@ def union(u, v, tpb=8):
     numpy.ndarray
         Combined voxel model.
     """
+    if not cuda_available():
+        return cpu_ops.union(u, v)
     d_u = cuda.to_device(u)
     d_v = cuda.to_device(v)
     dims = u.shape
@@ -96,6 +103,8 @@ def intersection(u, v, tpb=8):
     numpy.ndarray
         Voxel model containing only overlapping cells.
     """
+    if not cuda_available():
+        return cpu_ops.intersection(u, v)
     d_u = cuda.to_device(-1 * u)
     d_v = cuda.to_device(-1 * v)
     dims = u.shape
@@ -119,6 +128,8 @@ def subtract(u, v, tpb=8):
     numpy.ndarray
         Resulting voxel grid.
     """
+    if not cuda_available():
+        return cpu_ops.subtract(u, v)
     d_u = cuda.to_device(u)
     d_v = cuda.to_device(-1 * v)
     dims = u.shape
@@ -150,6 +161,8 @@ def projection(u, tpb=8):
     numpy.ndarray
         Projected voxel model.
     """
+    if not cuda_available():
+        return cpu_ops.projection(u)
     TPBY, TPBZ = tpb, tpb
     m, n, p = u.shape
     minX = -1
@@ -193,6 +206,8 @@ def translate(u, x, y, z, tpb=8):
     numpy.ndarray
         Translated voxel grid.
     """
+    if not cuda_available():
+        return cpu_ops.translate(u, x, y, z)
     d_u = cuda.to_device(u)
     d_v = cuda.device_array(shape=u.shape, dtype=np.float32)
     dims = u.shape
@@ -233,6 +248,8 @@ def condense(u, buffer, tpb=8):
     numpy.ndarray
         Condensed voxel grid.
     """
+    if not cuda_available():
+        return cpu_ops.condense(u, buffer, tpb)
     m, n, p = u.shape
     TPBX, TPBY, TPBZ = tpb, tpb, tpb
     minX, maxX, minY, maxY, minZ, maxZ = -1,-1,-1,-1,-1,-1
@@ -293,6 +310,8 @@ def heart(x, y, z, cx, cy, cz, tpb=8):
     numpy.ndarray
         Signed distance field of the heart.
     """
+    if not cuda_available():
+        return cpu_ops.heart(x, y, z, cx, cy, cz)
     TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]
@@ -333,6 +352,8 @@ def egg(x, y, z, cx, cy, cz, tpb=8):
     numpy.ndarray
         Signed distance field of the egg.
     """
+    if not cuda_available():
+        return cpu_ops.egg(x, y, z, cx, cy, cz)
     TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]
@@ -375,6 +396,8 @@ def rect(x, y, z, xl, yl, zl, origin=(0, 0, 0), tpb=8):
     numpy.ndarray
         Signed distance field of the prism.
     """
+    if not cuda_available():
+        return cpu_ops.rect(x, y, z, xl, yl, zl, origin)
     TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]
@@ -413,6 +436,8 @@ def sphere(x, y, z, rad, tpb=8):
     numpy.ndarray
         Signed distance field of the sphere.
     """
+    if not cuda_available():
+        return cpu_ops.sphere(x, y, z, rad)
     TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]
@@ -454,6 +479,8 @@ def cylinderX(x, y, z, start, stop, rad, tpb=8):
     numpy.ndarray
         Signed distance field of the cylinder.
     """
+    if not cuda_available():
+        return cpu_ops.cylinderX(x, y, z, start, stop, rad)
     TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]
@@ -495,6 +522,8 @@ def cylinderY(x, y, z, start, stop, rad, tpb=8):
     numpy.ndarray
         Signed distance field of the cylinder.
     """
+    if not cuda_available():
+        return cpu_ops.cylinderY(x, y, z, start, stop, rad)
     TPBX, TPBY, TPBZ = tpb, tpb, tpb
     m = x.shape[0]
     n = y.shape[0]

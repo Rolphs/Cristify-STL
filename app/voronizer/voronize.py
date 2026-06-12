@@ -4,6 +4,9 @@ from .SDF3D import SDF3D, jumpFlood
 from numba import cuda
 import numpy as np
 
+from . import cpu_ops
+from .backend import cuda_available
+
 def voronize(
     origObject,
     seedPoints,
@@ -32,7 +35,7 @@ def voronize(
     seedPoints = jumpFlood(seedPoints, order)
     if name !="":
         contourPlot(seedPoints[:,:,:,3],sliceLocation,titlestring="SDF of the Points for "+name,axis = sliceAxis)
-    voronoi = wallFinder(seedPoints)
+    voronoi = wallFinder(seedPoints, tpb)
     voronoi = SDF3D(voronoi)
     if name !="":
         slicePlot(voronoi,sliceLocation,titlestring="Voronoi Structure for "+name,axis = sliceAxis)
@@ -64,11 +67,13 @@ def wallFinderKernel(d_points,d_walls):
             if m!=m1 or n!=n1 or p!=p1:
                 d_walls[i,j,k]=-1
         
-def wallFinder(voxel):
+def wallFinder(voxel, tpb=8):
     #voxel = the original voxel model of the object
     #gradient = the gradient field of the object
-    #Outputs a voxel model with material where the gradient was below the 
+    #Outputs a voxel model with material where the gradient was below the
     #threshold.
+    if not cuda_available():
+        return cpu_ops.wallFinder(voxel)
     dims = voxel.shape
     d_points = cuda.to_device(voxel)
     d_walls = cuda.to_device(np.ones(dims[:3]))

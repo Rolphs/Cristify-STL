@@ -4,6 +4,9 @@ import numpy as np
 from struct import unpack
 from operator import itemgetter
 
+from . import cpu_ops
+from .backend import cuda_available
+
 # From https://github.com/cpederkoff/stl-to-voxel
 
 def voxelize(inputFilePath, resolution, buffer, tpb=8):
@@ -325,6 +328,8 @@ def toFRepKernel(d_u,d_v):
 
 def toFRep(u, tpb=8):
     """Convert boolean voxels to a simple FRep field."""
+    if not cuda_available():
+        return cpu_ops.toFRep(u)
     d_u = cuda.to_device(u)
     dims = u.shape
     d_v = cuda.device_array(dims, dtype=np.float32)

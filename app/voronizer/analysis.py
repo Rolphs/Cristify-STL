@@ -7,6 +7,9 @@ voronizer pipeline but can be imported directly.
 
 from numba import cuda
 
+from . import cpu_ops
+from .backend import cuda_available
+
 
 @cuda.reduce
 def sum_reduce(a, b):
@@ -34,6 +37,8 @@ def findVol(u, scale, MAT_DENSITY, name, tpb=8):
     float
         The computed volume in ``mm^3``.
     """
+    if not cuda_available():
+        return cpu_ops.findVol(u, scale, MAT_DENSITY, name)
     cellVol = scale[0]*scale[1]*scale[2]
     d_u = cuda.to_device(u)
     dims = u.shape
